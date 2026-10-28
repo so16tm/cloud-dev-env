@@ -23,11 +23,23 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: ランナー既定の .NET を外す
+        # クラウド環境には .NET が無いため、setup script が入れたものだけで動くか確かめる
+        run: sudo rm -rf /usr/share/dotnet
       - name: run dist/godot.sh
         run: sudo bash dist/godot.sh
-      - name: verify
+      - name: verify tools
         run: |
-          godot --headless --version
           fd --version
           bat --version
           shellcheck --version
+          dotnet --list-sdks
+          godot --headless --version
+      - name: verify GDScript + C#
+        working-directory: tests/godot-mixed
+        env:
+          DOTNET_ROOT: ""
+        run: |
+          dotnet build
+          timeout 120 godot --headless --path . 2>&1 | tee run.log
+          grep -q "MIXED_OK: Hello GDScript from C#" run.log

@@ -1,0 +1,4 @@
+tests/godot-mixed/.godot/
+tests/godot-mixed/bin/
+tests/godot-mixed/obj/
+tests/godot-mixed/run.log

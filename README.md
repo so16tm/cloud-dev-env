@@ -21,7 +21,9 @@ Claude Code クラウド環境（claude.ai/code・デスクトップアプリの
 
 | 環境 | 内容 |
 |---|---|
-| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 |
+| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 |
+
+`godot` 環境は GDScript のみ・C# のみ・混在のどのプロジェクトでも使える。CI で `tests/godot-mixed`（GDScript から C# のクラスを呼ぶ）を実行して確認している。
 
 Unity・Unreal Engine など重いエンジンは、5分のキャッシュ制限に収めるためエンジンごとに環境を分ける。
 
