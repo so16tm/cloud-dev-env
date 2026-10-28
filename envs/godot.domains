@@ -1,0 +1,5 @@
+# godot 環境だけで許可するドメイン (domains/common.txt に追加される)
+
+# Godot 公式サイトと Asset Library API (godotengine.org/asset-library/api)
+godotengine.org
+*.godotengine.org

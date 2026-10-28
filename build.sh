@@ -29,6 +29,13 @@ build() {
     cat lib/tail.sh
   } > "dist/$name.sh"
   echo "built dist/$name.sh ($(wc -c < "dist/$name.sh") bytes)"
+
+  # 環境設定の Allowed domains に貼る一覧。コメント・空白を除き、重複は先勝ちで除く
+  {
+    cat domains/common.txt
+    if [ -f "envs/$name.domains" ]; then cat "envs/$name.domains"; fi
+  } | sed -e 's/#.*//' -e 's/[[:space:]]//g' | awk 'NF && !seen[$0]++' > "dist/$name.domains.txt"
+  echo "built dist/$name.domains.txt ($(wc -l < "dist/$name.domains.txt") domains)"
 }
 
 if [ $# -gt 0 ]; then

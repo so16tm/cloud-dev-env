@@ -1,0 +1,21 @@
+# 全環境共通で許可するドメイン。Trusted の既定リストに無いものだけを書く
+# (既定リストは環境設定の「Also include default list of common package managers」で含める)
+# 先頭の *. はすべての深さのサブドメインに一致する
+
+# Hugging Face (モデル・データセット。xet / CDN のホスト名は変わることがあるため * で受ける)
+huggingface.co
+*.huggingface.co
+hf.co
+*.hf.co
+
+# PyTorch の wheel
+download.pytorch.org
+
+# Playwright のブラウザ取得元 (playwright-core の PLAYWRIGHT_CDN_MIRRORS)
+cdn.playwright.dev
+playwright.download.prss.microsoft.com
+
+# フロントエンド CDN
+cdn.jsdelivr.net
+unpkg.com
+cdnjs.cloudflare.com
