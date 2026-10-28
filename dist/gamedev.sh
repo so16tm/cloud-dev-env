@@ -1,5 +1,7 @@
 #!/bin/bash
 # 生成物: ./build.sh gamedev で envs/gamedev.env と modules/ から生成。直接編集しない
+# module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する
+# shellcheck disable=SC2317
 
 # ---- envs/gamedev.env ----
 # ゲーム開発用 (Godot + Unity)。Node.js / Python / Docker は既定イメージのものを使う
