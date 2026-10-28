@@ -21,8 +21,7 @@ Claude Code クラウド環境（claude.ai/code・デスクトップアプリの
 |---|---|
 | `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 |
 
-`modules/unity.sh`（Unity 6.3 LTS の GameCI Docker イメージ、約5.3GB）は現在どの環境からも使っていない。
-使う場合は `envs/` の `MODULES` に `unity` を足し、`UNITY_IMAGE` を定義する。
+Unity・Unreal Engine など重いエンジンは、5分のキャッシュ制限に収めるためエンジンごとに環境を分ける。
 
 Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウドの既定イメージに入っているため扱わない。
 
@@ -51,6 +50,4 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 - 約5分を超えると環境キャッシュされず、毎回 setup script が走る。重いモジュールは環境を分ける
 - Trusted の許可ドメイン外から取得するものは、環境を Custom にして許可ドメインを足すか、Docker Hub など許可済みの経路を使う
 - 環境変数・setup script は環境の利用者全員が読めるため、秘密情報は書かない（API キーはネットワークシークレットを使う）
-- Unity をバッチモードで使うにはライセンス（`UNITY_LICENSE` など）が別途必要
-
 詳細: https://code.claude.com/docs/en/cloud-environments
