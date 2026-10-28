@@ -1,0 +1,34 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: dist が最新か
+        run: |
+          ./build.sh
+          git diff --exit-code -- dist/ || { echo "::error::dist/ が古い。./build.sh を実行してコミットする"; exit 1; }
+      - name: shellcheck
+        run: shellcheck build.sh dist/*.sh
+
+  smoke:
+    # クラウド環境と同じ Ubuntu 24.04 で生成スクリプトを root 実行し、ツールが入るか確認する。
+    # Unity イメージ (約5GB) の取得は時間がかかるため省く。
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: run dist/gamedev.sh
+        run: sudo env UNITY_IMAGE= bash dist/gamedev.sh
+      - name: verify
+        run: |
+          godot --headless --version
+          fd --version
+          bat --version
+          shellcheck --version
