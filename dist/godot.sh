@@ -1,16 +1,15 @@
 #!/bin/bash
-# 生成物: ./build.sh gamedev で envs/gamedev.env と modules/ から生成。直接編集しない
+# 生成物: ./build.sh godot で envs/godot.env と modules/ から生成。直接編集しない
 # module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する
 # shellcheck disable=SC2317
 
-# ---- envs/gamedev.env ----
-# ゲーム開発用 (Godot + Unity)。Node.js / Python / Docker は既定イメージのものを使う
-MODULES="base-cli godot unity"
+# ---- envs/godot.env ----
+# Godot 開発用。Node.js / Python / Docker は既定イメージのものを使う
+MODULES="base-cli godot"
 
-# ${VAR-default} 形式にして、CI 等から空文字で上書き (例: UNITY_IMAGE= ) できるようにする
+# ${VAR-default} 形式にして、CI 等から上書きできるようにする
 GODOT_VERSION="${GODOT_VERSION-4.7.2}"
 GODOT_EXPORT_TEMPLATES="${GODOT_EXPORT_TEMPLATES-0}"
-UNITY_IMAGE="${UNITY_IMAGE-unityci/editor:ubuntu-6000.3.27f1-base-3}"
 
 # ---- lib/head.sh ----
 # 制約: 非ゼロ終了でセッションが起動しない / 約5分を超えると環境キャッシュされない。
@@ -51,33 +50,6 @@ module_godot() {
     mv /tmp/tpl/templates/* "$tpl/" &&
     rm -rf /tmp/tpl /tmp/tpl.tpz
   fi
-}
-
-# ---- modules/unity.sh ----
-# 変数: UNITY_IMAGE (GameCI の unityci/editor イメージ。空なら何もしない)
-# Unity 公式の配布ドメインは Trusted の許可リストに無いため、許可済みの Docker Hub から取得する。
-
-module_unity() {
-  [ -n "$UNITY_IMAGE" ] || return 0
-  # セットアップ時に dockerd が動いていない場合に備えて起動する。pull したイメージは
-  # /var/lib/docker に残り、環境キャッシュ (ファイルシステムのスナップショット) に含まれる。
-  if ! docker info >/dev/null 2>&1; then
-    (dockerd >/var/log/dockerd.log 2>&1 &)
-    for _ in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done
-  fi
-  docker pull -q "$UNITY_IMAGE" || return 1
-
-  # カレントディレクトリをマウントして Unity をバッチモードで実行するラッパー。
-  # 例: unity -projectPath /project -runTests -testPlatform EditMode
-  # ライセンスは環境変数 UNITY_LICENSE (.ulf の中身) などで渡す。
-  cat > /usr/local/bin/unity <<EOF
-#!/bin/bash
-docker info >/dev/null 2>&1 || { (dockerd >/var/log/dockerd.log 2>&1 &); sleep 5; }
-exec docker run --rm -v "\$PWD":/project -w /project \\
-  -e UNITY_LICENSE -e UNITY_EMAIL -e UNITY_PASSWORD -e UNITY_SERIAL \\
-  "$UNITY_IMAGE" unity-editor -batchmode -nographics -logFile - "\$@"
-EOF
-  chmod +x /usr/local/bin/unity
 }
 
 # ---- lib/tail.sh ----

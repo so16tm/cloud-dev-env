@@ -19,13 +19,12 @@ jobs:
 
   smoke:
     # クラウド環境と同じ Ubuntu 24.04 で生成スクリプトを root 実行し、ツールが入るか確認する。
-    # Unity イメージ (約5GB) の取得は時間がかかるため省く。
     needs: lint
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: run dist/gamedev.sh
-        run: sudo env UNITY_IMAGE= bash dist/gamedev.sh
+      - name: run dist/godot.sh
+        run: sudo bash dist/godot.sh
       - name: verify
         run: |
           godot --headless --version

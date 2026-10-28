@@ -19,7 +19,10 @@ Claude Code クラウド環境（claude.ai/code・デスクトップアプリの
 
 | 環境 | 内容 |
 |---|---|
-| `gamedev` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2、Unity 6.3 LTS（GameCI Docker イメージ） |
+| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 |
+
+`modules/unity.sh`（Unity 6.3 LTS の GameCI Docker イメージ、約5.3GB）は現在どの環境からも使っていない。
+使う場合は `envs/` の `MODULES` に `unity` を足し、`UNITY_IMAGE` を定義する。
 
 Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウドの既定イメージに入っているため扱わない。
 
@@ -27,7 +30,7 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 
 ```bash
 ./build.sh            # 全環境を生成
-./build.sh gamedev    # 指定環境のみ
+./build.sh godot      # 指定環境のみ
 ```
 
 1. claude.ai/code で対象のクラウド環境を編集し、**Setup script** に `dist/<env>.sh` を読み込む（Choose file、64KB まで）

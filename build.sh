@@ -1,7 +1,7 @@
 #!/bin/bash
 # envs/<name>.env と modules/ から、クラウド環境に貼る単一ファイル dist/<name>.sh を生成する。
 # 使い方: ./build.sh          (全環境)
-#         ./build.sh gamedev  (指定環境のみ)
+#         ./build.sh godot    (指定環境のみ)
 set -euo pipefail
 cd "$(dirname "$0")"
 
