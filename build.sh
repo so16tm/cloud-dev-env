@@ -1,9 +1,13 @@
 #!/bin/bash
-# envs/<name>.env と modules/ から、クラウド環境に貼る単一ファイル dist/<name>.sh を生成する。
+# envs/<name>.env と modules/ から、dist/<name>.sh (本体)・<name>.setup.sh (貼り付け用起動スクリプト)・
+# <name>.domains.txt (許可ドメイン) を生成する。
 # 使い方: ./build.sh          (全環境)
 #         ./build.sh godot    (指定環境のみ)
 set -euo pipefail
 cd "$(dirname "$0")"
+
+# 起動スクリプトが本体を取得する場所 (public リポジトリの main)
+RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
 
 build() {
   local name=$1 env_file="envs/$1.env" modules m
@@ -36,6 +40,19 @@ build() {
     if [ -f "envs/$name.domains" ]; then cat "envs/$name.domains"; fi
   } | sed -e 's/#.*//' -e 's/[[:space:]]//g' | awk 'NF && !seen[$0]++' > "dist/$name.domains.txt"
   echo "built dist/$name.domains.txt ($(wc -l < "dist/$name.domains.txt") domains)"
+
+  # 環境設定の Setup script に一度だけ貼る起動スクリプト。本体は起動時にリポジトリから取得する
+  cat > "dist/$name.setup.sh" <<EOF
+#!/bin/bash
+# cloud-dev-env の $name 環境。本体 dist/$name.sh をリポジトリから取得して実行する
+# リポジトリの更新は環境キャッシュの期限 (約7日) で反映される。すぐ反映したいときは rev を上げて保存し直す
+# rev: 1
+set -euo pipefail
+# 取得に失敗したら非ゼロで終了し、ツールの無い状態が環境キャッシュに残らないようにする
+curl -fsSL --retry 3 -o /tmp/cloud-setup.sh "$RAW_BASE/dist/$name.sh"
+exec bash /tmp/cloud-setup.sh
+EOF
+  echo "built dist/$name.setup.sh"
 }
 
 if [ $# -gt 0 ]; then

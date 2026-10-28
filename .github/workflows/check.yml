@@ -16,6 +16,12 @@ jobs:
           git diff --exit-code -- dist/ || { echo "::error::dist/ が古い。./build.sh を実行してコミットする"; exit 1; }
       - name: shellcheck
         run: shellcheck build.sh dist/*.sh
+      - name: 起動スクリプトの取得先に到達できるか
+        run: |
+          for f in dist/*.setup.sh; do
+            url=$(grep -o 'https://raw.githubusercontent.com/[^"]*' "$f")
+            curl -fsSI "$url" > /dev/null || { echo "::error::$f の取得先に到達できない: $url"; exit 1; }
+          done
 
   smoke:
     # クラウド環境と同じ Ubuntu 24.04 で生成スクリプトを root 実行し、ツールが入るか確認する。
