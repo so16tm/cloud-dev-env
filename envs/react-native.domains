@@ -1,0 +1,12 @@
+# Android SDK (sdkmanager の取得先。Google Maven・Gradle・Maven Central は Trusted の既定リストに含まれる)
+dl.google.com
+dl-ssl.google.com
+# Expo のテンプレートが依存の取得先に入れている
+jitpack.io
+# Expo / EAS (API・EAS Build・EAS Update)
+expo.dev
+*.expo.dev
+exp.host
+*.exp.host
+# EAS Build のアップロード・成果物の取得先
+storage.googleapis.com

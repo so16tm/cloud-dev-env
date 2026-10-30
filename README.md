@@ -23,6 +23,9 @@ claude.ai/code で新しいクラウド環境を作り（または既存の環�
 | 環境 | 内容 |
 |---|---|
 | `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 |
+| `react-native` | CLI 追加分、Android SDK（cmdline-tools・platform-tools・platform 36・build-tools 36.0.0）、JDK 17。React Native・Expo の Android ビルドまで |
+
+`react-native` 環境では、Android SDK は `/opt/android-sdk` に入れ、`JAVA_HOME`（JDK 17）と `ANDROID_HOME` を `~/.bashrc` から読み込む。setup に無い platform・NDK は Gradle がビルド時に自動で取得する。iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認している。
 
 `godot` 環境は GDScript のみ・C# のみ・混在のどのプロジェクトでも使える。CI で `tests/godot-mixed`（GDScript から C# のクラスを呼ぶ）を実行して確認している。
 

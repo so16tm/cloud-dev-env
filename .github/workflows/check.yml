@@ -50,3 +50,39 @@ jobs:
           dotnet build
           timeout 120 godot --headless --path . 2>&1 | tee run.log
           grep -q "MIXED_OK: Hello GDScript from C#" run.log
+
+  smoke-react-native:
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # クラウド環境の既定と同じ版
+          node-version: 22
+      - name: ランナー既定の Android SDK を外す
+        # クラウド環境には Android SDK が無いため、setup script が入れたものだけで動くか確かめる
+        run: sudo rm -rf /usr/local/lib/android
+      - name: run dist/react-native.sh
+        run: sudo bash dist/react-native.sh
+      - name: verify tools
+        run: |
+          sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
+          sudo grep -q android.sh /root/.bashrc
+          . /etc/profile.d/android.sh
+          java -version
+          sdkmanager --list_installed
+      - name: verify Expo Android build
+        run: |
+          # クラウドは root で動くため SDK に書き込める。CI は一般ユーザーなので所有者を移して Gradle の自動取得を通す
+          sudo chown -R "$USER" /opt/android-sdk
+          . /etc/profile.d/android.sh
+          unset ANDROID_SDK_ROOT ANDROID_NDK ANDROID_NDK_HOME ANDROID_NDK_ROOT ANDROID_NDK_LATEST_HOME
+          cd "$RUNNER_TEMP"
+          npx --yes create-expo-app@latest app --template blank --yes
+          cd app
+          npx expo prebuild --platform android
+          (cd android && ./gradlew assembleDebug --no-daemon -q)
+          ls android/app/build/outputs/apk/debug/
+          # Gradle が自動で取得した SDK パッケージ。setup で先に入れるべきか判断する材料にする
+          sdkmanager --list_installed
