@@ -37,6 +37,12 @@ jobs:
       - name: cloud-env-check
         # セッションで実行するのと同じ確認。setup で失敗したモジュールも NG になる
         run: sudo cloud-env-check
+      - name: cloud-prepare
+        run: |
+          sudo cloud-prepare
+          if sudo cloud-prepare unknown-name; then exit 1; fi
+          sudo cloud-prepare godot-export-templates
+          sudo ls /root/.local/share/godot/export_templates/4.7.2.stable.mono/ | grep -q linux_release.x86_64
       - name: verify GDScript + C#
         working-directory: tests/godot-mixed
         env:

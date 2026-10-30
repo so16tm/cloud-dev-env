@@ -20,10 +20,14 @@ setup は確認用の `cloud-env-check` も入れる。クラウド用の CLAUDE
 
 ## 環境一覧
 
-| 環境 | 内容 |
-|---|---|
-| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 |
-| `react-native` | CLI 追加分、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など）、JDK 17。React Native・Expo の Android ビルドまで |
+setup に入れるか、必要なときに入れるかは、使う頻度と所要時間で決める。setup に入れたものは環境キャッシュに載り、待つのはリポジトリごとの初回（約7日ごと）だけで、使わないタスクの起動も遅くならない。必要なときに入れたものはそのセッションにだけ残り、使うセッションのたびに待つ。このため、使う頻度が低く大きいものだけを必要なときに入れる。setup 全体は約5分に収める（超えるとキャッシュされない）。
+
+| 環境 | setup で入れる | 必要なときに入れる |
+|---|---|---|
+| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う） |
+| `react-native` | CLI 追加分、JDK 17、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など） | なし（一覧に無い SDK パッケージは、ビルド時に Gradle が自動で取得する） |
+
+`cloud-prepare` を引数なしで実行すると、準備できるものと用途が表示される。クラウド用の CLAUDE.md で、必要になったら Claude がこれを使うよう指示している。
 
 `react-native` 環境では、Android SDK を `/opt/android-sdk` に入れ、`sdkmanager`・`avdmanager`・`adb` を `/usr/local/bin` に置く。セッションのシェルは setup で書いた設定ファイルを読まないため、環境の **Environment variables** に次の2行を設定する（Gradle が JDK 17 と SDK を使うために必要。`java -version` は既定イメージの 21 のままになる）。
 
@@ -32,7 +36,7 @@ ANDROID_HOME=/opt/android-sdk
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
-入れる SDK パッケージは Expo の blank テンプレートのビルドで使うものに合わせてあり、それ以外が必要なら Gradle がビルド時に自動で取得する。iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認している。
+iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認し、ビルド中に SDK パッケージの追加取得が起きたら警告を出す。
 
 `godot` 環境は GDScript のみ・C# のみ・混在のどのプロジェクトでも使える。CI で `tests/godot-mixed`（GDScript から C# のクラスを呼ぶ）を実行して確認している。
 
@@ -58,7 +62,7 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 | パス | 役割 |
 |---|---|
 | `modules/<name>.sh` | ツール単位の部品。`APT_PACKAGES+=(...)` と `module_<name>()` を定義する |
-| `envs/<env>.env` | 環境ごとの定義。使うモジュール（`MODULES`）と変数 |
+| `envs/<env>.env` | 環境ごとの定義。setup で入れるモジュール（`MODULES`）、必要なときに入れるモジュール（`ON_DEMAND`）と変数 |
 | `envs/<env>.domains` | 環境ごとに追加で許可するドメイン（任意） |
 | `domains/common.txt` | 全環境共通で許可するドメイン（Trusted の既定リストに無いもの） |
 | `lib/head.sh`, `lib/tail.sh` | 本体の共通前後処理（ログ、apt 一括導入、モジュールの並列実行） |
@@ -76,7 +80,8 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 ## 新しいツール・環境を足す
 
 - ツール: `modules/<name>.sh` を作り、`module_<name>()`（`-` は `_` に置換）を定義する。apt で入るものは `APT_PACKAGES` に追記する。セッション内で確かめる項目があれば `check_<name>()` を定義し、`check_ok` / `check_ng` で報告する（`cloud-env-check` に組み込まれる）
-- 環境: `envs/<env>.env` を作り、`MODULES` と必要な変数を書く。変数は `VAR="${VAR-既定値}"` 形式にする
+- 毎回は使わないツール: `ON_DEMAND` に入れ、`about_<name>()`（用途の1行説明）と `module_<name>()` を定義する。setup の外で動くため、`APT_PACKAGES` と環境の変数は使わず、apt もモジュールの中で実行する
+- 環境: `envs/<env>.env` を作り、`MODULES`・`ON_DEMAND` と必要な変数を書く。変数は `VAR="${VAR-既定値}"` 形式にする
 - ドメイン: 全環境で使うものは `domains/common.txt`、特定環境だけなら `envs/<env>.domains` に1行1ドメインで書く（`#` 以降はコメント）
 - `./build.sh` を実行して `dist/` ごとコミットし、main に push する
 

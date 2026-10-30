@@ -12,8 +12,9 @@ RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
 build() {
   local name=$1 env_file="envs/$1.env" modules m
   [ -f "$env_file" ] || { echo "not found: $env_file" >&2; return 1; }
+  # setup で入れる MODULES と、セッション内で cloud-prepare から入れる ON_DEMAND の両方を本体に含める
   # shellcheck disable=SC2016
-  modules=$(bash -c 'source "$1"; echo "$MODULES"' _ "$env_file")
+  modules=$(bash -c 'source "$1"; echo "$MODULES ${ON_DEMAND:-}"' _ "$env_file")
   for m in $modules; do
     [ -f "modules/$m.sh" ] || { echo "$env_file: module not found: modules/$m.sh" >&2; return 1; }
   done

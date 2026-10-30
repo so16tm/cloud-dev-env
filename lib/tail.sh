@@ -46,5 +46,32 @@ EOF
 } > /usr/local/bin/cloud-env-check
 chmod +x /usr/local/bin/cloud-env-check
 
+# 毎回は使わないツールは setup に入れず (リポジトリごとの初回の待ち時間を短くするため)、
+# セッション内で必要になったときに cloud-prepare <名前> で入れる。ON_DEMAND のモジュールは
+# APT_PACKAGES と環境の変数を使わず、module_<name>() だけで完結させる (setup の外で動くため)
+{
+  echo '#!/bin/bash'
+  echo '# 生成物: cloud-dev-env の setup が書き出す。毎回は使わないツールを必要なときに入れる'
+  echo "ON_DEMAND=\"${ON_DEMAND:-}\""
+  for m in ${ON_DEMAND:-}; do declare -f "about_${m//-/_}" "module_${m//-/_}"; done
+  cat <<'EOF'
+if [ $# -eq 0 ]; then
+  echo "使い方: cloud-prepare <名前>... (時間がかかるものはバックグラウンドで実行する)"
+  for m in $ON_DEMAND; do echo "  $m: $("about_${m//-/_}")"; done
+  exit 0
+fi
+rc=0
+for m in "$@"; do
+  case " $ON_DEMAND " in
+    *" $m "*) ;;
+    *) echo "$m: 不明 (使えるもの: ${ON_DEMAND:-なし})"; rc=1; continue ;;
+  esac
+  if "module_${m//-/_}"; then echo "$m: done"; else echo "$m: FAILED"; rc=1; fi
+done
+exit "$rc"
+EOF
+} > /usr/local/bin/cloud-prepare
+chmod +x /usr/local/bin/cloud-prepare
+
 echo "[setup] end $(date -Is)"
 exit 0

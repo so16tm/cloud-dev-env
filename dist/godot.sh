@@ -9,10 +9,11 @@ RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
 # ---- envs/godot.env ----
 # Godot 開発用 (GDScript / C# 両対応)。Node.js / Python / Docker は既定イメージのものを使う
 MODULES="claude-config base-cli godot"
+# 毎回は使わないもの。セッション内で cloud-prepare <名前> で入れる
+ON_DEMAND="godot-export-templates"
 
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
 GODOT_VERSION="${GODOT_VERSION-4.7.2}"
-GODOT_EXPORT_TEMPLATES="${GODOT_EXPORT_TEMPLATES-0}"
 
 # ---- lib/head.sh ----
 # 制約: 非ゼロ終了でセッションが起動しない / 約5分を超えると環境キャッシュされない。
@@ -58,9 +59,10 @@ check_base_cli() {
 
 # ---- modules/godot.sh ----
 # Godot の .NET 版を入れる。.NET 版は GDScript と C# の両方を扱えるため、混在・途中切り替えに対応できる。
-# 変数: GODOT_VERSION (例 4.7.2), GODOT_EXPORT_TEMPLATES (1 で約1GBの .NET 版テンプレートも入れる)
+# 変数: GODOT_VERSION (例 4.7.2)
 # .NET SDK は Ubuntu 24.04 の標準フィードにある 8.0 (Godot 4.5 以降の最低要件・新規プロジェクトの既定) と
 # 10.0 (LTS) を両方入れ、プロジェクトの TargetFramework がどちらでもビルドできるようにする。
+# エクスポートテンプレート (約1GB) は書き出すときしか使わないため cloud-prepare godot-export-templates で入れる
 APT_PACKAGES+=(unzip fontconfig libfontconfig1 dotnet-sdk-8.0 dotnet-sdk-10.0)
 
 module_godot() {
@@ -77,15 +79,6 @@ module_godot() {
 exec "/opt/godot/$name/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" "\$@"
 EOF
   chmod +x /usr/local/bin/godot
-
-  if [ "${GODOT_EXPORT_TEMPLATES:-0}" = "1" ]; then
-    local tpl="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono"
-    mkdir -p "$tpl" &&
-    curl -fsSL -o /tmp/tpl.tpz "$base/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz" &&
-    unzip -qo /tmp/tpl.tpz -d /tmp/tpl &&
-    mv /tmp/tpl/templates/* "$tpl/" &&
-    rm -rf /tmp/tpl /tmp/tpl.tpz
-  fi
 }
 
 check_godot() {
@@ -94,6 +87,25 @@ check_godot() {
   for v in 8 10; do
     if dotnet --list-sdks 2> /dev/null | grep -q "^$v\."; then check_ok ".NET SDK $v"; else check_ng ".NET SDK $v が無い"; fi
   done
+}
+
+# ---- modules/godot-export-templates.sh ----
+# ON_DEMAND (cloud-prepare godot-export-templates)。約1GB あり、エクスポートするときしか使わないため setup には入れない
+about_godot_export_templates() { echo "Godot .NET 版のエクスポートテンプレート (約1GB)。ゲームを書き出すときに使う"; }
+
+module_godot_export_templates() {
+  # 環境の変数を使えないため、入っている Godot から版を求める (例 4.7.2.stable.mono.official.xxx → 4.7.2)
+  local v ver base tpl
+  v=$(godot --headless --version) || return 1
+  ver=${v%%.stable*}
+  base="https://github.com/godotengine/godot/releases/download/${ver}-stable"
+  tpl="$HOME/.local/share/godot/export_templates/${ver}.stable.mono"
+  mkdir -p "$tpl" &&
+  curl -fsSL -o /tmp/tpl.tpz "$base/Godot_v${ver}-stable_mono_export_templates.tpz" &&
+  rm -rf /tmp/tpl &&
+  unzip -qo /tmp/tpl.tpz -d /tmp/tpl &&
+  mv /tmp/tpl/templates/* "$tpl/" &&
+  rm -rf /tmp/tpl /tmp/tpl.tpz
 }
 
 # ---- lib/tail.sh ----
@@ -143,6 +155,33 @@ exit "$NG"
 EOF
 } > /usr/local/bin/cloud-env-check
 chmod +x /usr/local/bin/cloud-env-check
+
+# 毎回は使わないツールは setup に入れず (リポジトリごとの初回の待ち時間を短くするため)、
+# セッション内で必要になったときに cloud-prepare <名前> で入れる。ON_DEMAND のモジュールは
+# APT_PACKAGES と環境の変数を使わず、module_<name>() だけで完結させる (setup の外で動くため)
+{
+  echo '#!/bin/bash'
+  echo '# 生成物: cloud-dev-env の setup が書き出す。毎回は使わないツールを必要なときに入れる'
+  echo "ON_DEMAND=\"${ON_DEMAND:-}\""
+  for m in ${ON_DEMAND:-}; do declare -f "about_${m//-/_}" "module_${m//-/_}"; done
+  cat <<'EOF'
+if [ $# -eq 0 ]; then
+  echo "使い方: cloud-prepare <名前>... (時間がかかるものはバックグラウンドで実行する)"
+  for m in $ON_DEMAND; do echo "  $m: $("about_${m//-/_}")"; done
+  exit 0
+fi
+rc=0
+for m in "$@"; do
+  case " $ON_DEMAND " in
+    *" $m "*) ;;
+    *) echo "$m: 不明 (使えるもの: ${ON_DEMAND:-なし})"; rc=1; continue ;;
+  esac
+  if "module_${m//-/_}"; then echo "$m: done"; else echo "$m: FAILED"; rc=1; fi
+done
+exit "$rc"
+EOF
+} > /usr/local/bin/cloud-prepare
+chmod +x /usr/local/bin/cloud-prepare
 
 echo "[setup] end $(date -Is)"
 exit 0

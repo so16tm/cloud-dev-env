@@ -25,6 +25,7 @@ mkdir -p claude
   echo
   echo '- セッションで最初の依頼に取りかかる前に `cloud-env-check` を1回実行する。`NG` の行があれば、その内容と対処をユーザーに報告してから作業する。全部 `OK` なら報告は不要。'
   echo '- `cloud-env-check` が無い場合は、cloud-dev-env の setup が動いていないか古いので、その旨を報告する。'
+  echo '- 毎回は使わないツールは setup に入れていない。必要になったら `cloud-prepare`（引数なし）で準備できるものを確認し、`cloud-prepare <名前>` で入れる。時間がかかるものはバックグラウンドで実行し、他の作業を並行して進める。入れたものはこのセッションにだけ残る。'
   for f in "$RULES_DIR"/*.md; do
     [ -f "$f" ] || continue
     # paths 指定の frontmatter を持つルールは条件付き読み込みのため、常時読まれる CLAUDE.md には混ぜない

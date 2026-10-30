@@ -14,7 +14,8 @@ MODULES="claude-config base-cli android-sdk"
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
 # ANDROID_NDK 等の標準の変数名は CI ランナーが設定済みで衝突するため、独自の名前にする
 ANDROID_CMDLINE_TOOLS_BUILD="${ANDROID_CMDLINE_TOOLS_BUILD-15859902}"
-# Expo の blank テンプレートの debug ビルドで Gradle が使ったもの。CI でビルド中に追加取得が起きたら警告が出るので、それに合わせて更新する
+# Expo の blank テンプレートの debug ビルドで Gradle が使ったもの。ビルドのたびに自動取得させると毎回同じ時間がかかるため、
+# setup で入れて環境キャッシュに載せる。CI でビルド中に追加取得が起きたら警告が出るので、それに合わせて更新する
 ANDROID_SDK_PACKAGES="${ANDROID_SDK_PACKAGES-platform-tools platforms;android-37.0 build-tools;36.0.0 build-tools;37.0.0 ndk;27.1.12297006 cmake;3.22.1}"
 
 # ---- lib/head.sh ----
@@ -156,6 +157,33 @@ exit "$NG"
 EOF
 } > /usr/local/bin/cloud-env-check
 chmod +x /usr/local/bin/cloud-env-check
+
+# 毎回は使わないツールは setup に入れず (リポジトリごとの初回の待ち時間を短くするため)、
+# セッション内で必要になったときに cloud-prepare <名前> で入れる。ON_DEMAND のモジュールは
+# APT_PACKAGES と環境の変数を使わず、module_<name>() だけで完結させる (setup の外で動くため)
+{
+  echo '#!/bin/bash'
+  echo '# 生成物: cloud-dev-env の setup が書き出す。毎回は使わないツールを必要なときに入れる'
+  echo "ON_DEMAND=\"${ON_DEMAND:-}\""
+  for m in ${ON_DEMAND:-}; do declare -f "about_${m//-/_}" "module_${m//-/_}"; done
+  cat <<'EOF'
+if [ $# -eq 0 ]; then
+  echo "使い方: cloud-prepare <名前>... (時間がかかるものはバックグラウンドで実行する)"
+  for m in $ON_DEMAND; do echo "  $m: $("about_${m//-/_}")"; done
+  exit 0
+fi
+rc=0
+for m in "$@"; do
+  case " $ON_DEMAND " in
+    *" $m "*) ;;
+    *) echo "$m: 不明 (使えるもの: ${ON_DEMAND:-なし})"; rc=1; continue ;;
+  esac
+  if "module_${m//-/_}"; then echo "$m: done"; else echo "$m: FAILED"; rc=1; fi
+done
+exit "$rc"
+EOF
+} > /usr/local/bin/cloud-prepare
+chmod +x /usr/local/bin/cloud-prepare
 
 echo "[setup] end $(date -Is)"
 exit 0
