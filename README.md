@@ -28,8 +28,20 @@ claude.ai/code で新しいクラウド環境を作り（または既存の環�
 
 Godot のバージョンが違うプロジェクトや、Unity・Unreal Engine など重いエンジンは、環境を分ける（5分のキャッシュ制限に収めるため）。
 
+全環境に `claude-config` モジュールを入れ、`claude/CLAUDE.md` を `/root/.claude/CLAUDE.md` に置く。クラウドでは手元の `~/.claude/CLAUDE.md` が読まれないため、これがユーザー規約になる。
+
 Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウドの既定イメージに入っているため扱わない。
 `dotnet restore`・`npm install` などプロジェクト固有の準備は、各リポジトリの SessionStart hook に書くかセッション内で実行する。
+
+## ユーザー規約の更新
+
+正本は手元の `~/.codex/AGENTS.md` と `~/.claude/rules/*.md`。変更したら `./sync-claude.sh` を実行し、`claude/CLAUDE.md` をコミットして push する。
+
+- `@` で始まる import 行は除く（手元のパスを指し、クラウドで解決できないため）
+- 手元では settings の `language` と hook で指定している日本語の指示を、代わりに書き足す
+- `paths` の frontmatter を持つルールは混ぜない
+- public リポジトリなので、コミット前に差分で秘密情報・個人のパスが無いか確認する
+- 反映は他のツールと同じく環境キャッシュの作り直し時（すぐ反映するなら `rev` を上げる）
 
 ## 構成
 
@@ -41,11 +53,15 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 | `domains/common.txt` | 全環境共通で許可するドメイン（Trusted の既定リストに無いもの） |
 | `lib/head.sh`, `lib/tail.sh` | 本体の共通前後処理（ログ、apt 一括導入、モジュールの並列実行） |
 | `build.sh` | `dist/` を生成する |
+| `sync-claude.sh` | 手元のユーザー規約から `claude/CLAUDE.md` を生成する |
+| `claude/CLAUDE.md` | クラウドに配るユーザー規約（生成物） |
 | `dist/<env>.sh` | 本体。起動スクリプトが取得して実行する |
 | `dist/<env>.setup.sh` | 環境の Setup script に貼る起動スクリプト |
 | `dist/<env>.domains.txt` | 環境の Allowed domains に貼る一覧 |
 
 `dist/` は生成物なので直接編集しない。CI で元ファイルとの一致を検査する。
+
+ユーザー規約は「GitHub Actions をテストに使わない」としているが、このリポジトリは public（標準ランナーは無料）のため例外として CI で smoke テストを行う。
 
 ## 新しいツール・環境を足す
 

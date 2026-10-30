@@ -36,6 +36,7 @@ jobs:
         run: sudo bash dist/godot.sh
       - name: verify tools
         run: |
+          sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
           fd --version
           bat --version
           shellcheck --version

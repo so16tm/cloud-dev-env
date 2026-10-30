@@ -3,9 +3,12 @@
 # module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する
 # shellcheck disable=SC2317
 
+# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う
+RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
+
 # ---- envs/godot.env ----
 # Godot 開発用 (GDScript / C# 両対応)。Node.js / Python / Docker は既定イメージのものを使う
-MODULES="base-cli godot"
+MODULES="claude-config base-cli godot"
 
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
 GODOT_VERSION="${GODOT_VERSION-4.7.2}"
@@ -19,6 +22,14 @@ export DEBIAN_FRONTEND=noninteractive
 # 各モジュールが必要な apt パッケージを追記する。モジュール本体より先にまとめて入れる
 APT_PACKAGES=()
 echo "[setup] start $(date -Is) modules: $MODULES"
+
+# ---- modules/claude-config.sh ----
+# クラウドでは手元の ~/.claude/CLAUDE.md が読まれないため、claude/CLAUDE.md をユーザー規約として置く。
+# Claude Code は root で動くので /root/.claude/CLAUDE.md になる
+module_claude_config() {
+  mkdir -p "$HOME/.claude" &&
+  curl -fsSL --retry 3 -o "$HOME/.claude/CLAUDE.md" "$RAW_BASE/claude/CLAUDE.md"
+}
 
 # ---- modules/base-cli.sh ----
 # 既定イメージに無い CLI。git, gh, jq, yq, rg, tmux は既定で入っている
