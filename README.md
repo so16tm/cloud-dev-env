@@ -10,7 +10,7 @@ claude.ai/code で新しいクラウド環境を作り（または既存の環�
 1. **Setup script**: `dist/<env>.setup.sh` の中身を貼る。この起動スクリプトがセッション開始時に本体 `dist/<env>.sh` をこのリポジトリから取得して実行する
 2. **Network access**: **Custom** にし、**Allowed domains** に `dist/<env>.domains.txt` の中身を貼り、**Also include default list of common package managers** にチェックを入れる（Trusted の既定リストも残すため）
 
-新しいセッションで `/var/log/cloud-setup.log` を見ると結果を確認できる。
+setup は確認用の `cloud-env-check` も入れる。クラウド用の CLAUDE.md で、セッションの最初の依頼の前に Claude がこれを実行し、`NG`（setup の失敗、Environment variables の設定漏れなど）があれば対処と一緒に報告するよう指示している。setup の時点では Environment variables が未設定で、出力もセッションに表示されないため、確認はセッション内で行う。詳しいログは `/var/log/cloud-setup.log`。
 
 ## 更新の反映
 
@@ -75,7 +75,7 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 
 ## 新しいツール・環境を足す
 
-- ツール: `modules/<name>.sh` を作り、`module_<name>()`（`-` は `_` に置換）を定義する。apt で入るものは `APT_PACKAGES` に追記する
+- ツール: `modules/<name>.sh` を作り、`module_<name>()`（`-` は `_` に置換）を定義する。apt で入るものは `APT_PACKAGES` に追記する。セッション内で確かめる項目があれば `check_<name>()` を定義し、`check_ok` / `check_ng` で報告する（`cloud-env-check` に組み込まれる）
 - 環境: `envs/<env>.env` を作り、`MODULES` と必要な変数を書く。変数は `VAR="${VAR-既定値}"` 形式にする
 - ドメイン: 全環境で使うものは `domains/common.txt`、特定環境だけなら `envs/<env>.domains` に1行1ドメインで書く（`#` 以降はコメント）
 - `./build.sh` を実行して `dist/` ごとコミットし、main に push する

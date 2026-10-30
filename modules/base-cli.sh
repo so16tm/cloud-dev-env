@@ -6,3 +6,9 @@ module_base_cli() {
   ln -sf /usr/bin/fdfind /usr/local/bin/fd &&
   ln -sf /usr/bin/batcat /usr/local/bin/bat
 }
+
+check_base_cli() {
+  local c missing=()
+  for c in fd bat shellcheck tree unzip; do command -v "$c" > /dev/null || missing+=("$c"); done
+  if [ ${#missing[@]} -eq 0 ]; then check_ok "CLI (fd, bat, shellcheck など)"; else check_ng "CLI が PATH に無い: ${missing[*]}"; fi
+}

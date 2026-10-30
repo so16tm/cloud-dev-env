@@ -29,3 +29,11 @@ EOF
     rm -rf /tmp/tpl /tmp/tpl.tpz
   fi
 }
+
+check_godot() {
+  local v
+  if v=$(godot --headless --version 2> /dev/null); then check_ok "Godot $v"; else check_ng "godot が動かない"; fi
+  for v in 8 10; do
+    if dotnet --list-sdks 2> /dev/null | grep -q "^$v\."; then check_ok ".NET SDK $v"; else check_ng ".NET SDK $v が無い"; fi
+  done
+}

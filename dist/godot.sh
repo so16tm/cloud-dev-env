@@ -21,7 +21,13 @@ exec > >(tee -a "$LOG") 2>&1
 export DEBIAN_FRONTEND=noninteractive
 # 各モジュールが必要な apt パッケージを追記する。モジュール本体より先にまとめて入れる
 APT_PACKAGES=()
+failed=()
 echo "[setup] start $(date -Is) modules: $MODULES"
+
+# cloud-env-check の結果の出力。各モジュールは check_<name>() にセッション内で確かめる項目を書き、これで報告する
+check_ok() { echo "OK  $*"; }
+# shellcheck disable=SC2034 # NG は cloud-env-check の終了コードに使う
+check_ng() { echo "NG  $*"; NG=1; }
 
 # ---- modules/claude-config.sh ----
 # クラウドでは手元の ~/.claude/CLAUDE.md が読まれないため、claude/CLAUDE.md をユーザー規約として置く。
@@ -31,6 +37,10 @@ module_claude_config() {
   curl -fsSL --retry 3 -o "$HOME/.claude/CLAUDE.md" "$RAW_BASE/claude/CLAUDE.md"
 }
 
+check_claude_config() {
+  if [ -s "$HOME/.claude/CLAUDE.md" ]; then check_ok "ユーザー規約 ~/.claude/CLAUDE.md"; else check_ng "ユーザー規約 ~/.claude/CLAUDE.md が無い"; fi
+}
+
 # ---- modules/base-cli.sh ----
 # 既定イメージに無い CLI。git, gh, jq, yq, rg, tmux は既定で入っている
 APT_PACKAGES+=(fd-find bat shellcheck tree unzip zip htop)
@@ -38,6 +48,12 @@ APT_PACKAGES+=(fd-find bat shellcheck tree unzip zip htop)
 module_base_cli() {
   ln -sf /usr/bin/fdfind /usr/local/bin/fd &&
   ln -sf /usr/bin/batcat /usr/local/bin/bat
+}
+
+check_base_cli() {
+  local c missing=()
+  for c in fd bat shellcheck tree unzip; do command -v "$c" > /dev/null || missing+=("$c"); done
+  if [ ${#missing[@]} -eq 0 ]; then check_ok "CLI (fd, bat, shellcheck など)"; else check_ng "CLI が PATH に無い: ${missing[*]}"; fi
 }
 
 # ---- modules/godot.sh ----
@@ -72,6 +88,14 @@ EOF
   fi
 }
 
+check_godot() {
+  local v
+  if v=$(godot --headless --version 2> /dev/null); then check_ok "Godot $v"; else check_ng "godot が動かない"; fi
+  for v in 8 10; do
+    if dotnet --list-sdks 2> /dev/null | grep -q "^$v\."; then check_ok ".NET SDK $v"; else check_ng ".NET SDK $v が無い"; fi
+  done
+}
+
 # ---- lib/tail.sh ----
 # apt は並列実行するとロックで衝突するため、先に一括で入れてからモジュールを並列実行する。
 if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
@@ -79,6 +103,7 @@ if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
     echo "[setup] apt: done"
   else
     echo "[setup] apt: FAILED (続行します)"
+    failed+=(apt)
   fi
 fi
 
@@ -93,9 +118,31 @@ for m in $MODULES; do
     echo "[setup] $m: done"
   else
     echo "[setup] $m: FAILED (続行します)"
+    failed+=("$m")
   fi
   cat "/tmp/setup-$m.log"
 done
+
+# setup の時点では環境の Environment variables が未設定で、出力もセッションに表示されないため、
+# 確認はセッション内で cloud-env-check を実行して行う (クラウド用 CLAUDE.md で最初に実行するよう指示している)
+{
+  echo '#!/bin/bash'
+  echo '# 生成物: cloud-dev-env の setup が書き出す。セッション内の状態を確認し、NG があれば終了コード 1'
+  echo "SETUP_FAILED=\"${failed[*]}\""
+  declare -f check_ok check_ng
+  for m in $MODULES; do declare -f "check_${m//-/_}"; done
+  cat <<'EOF'
+NG=0
+if [ -n "$SETUP_FAILED" ]; then check_ng "setup で失敗: $SETUP_FAILED (/var/log/cloud-setup.log を確認)"; else check_ok "setup"; fi
+EOF
+  for m in $MODULES; do
+    if declare -F "check_${m//-/_}" > /dev/null; then echo "check_${m//-/_}"; fi
+  done
+  cat <<'EOF'
+exit "$NG"
+EOF
+} > /usr/local/bin/cloud-env-check
+chmod +x /usr/local/bin/cloud-env-check
 
 echo "[setup] end $(date -Is)"
 exit 0

@@ -5,3 +5,7 @@ module_claude_config() {
   mkdir -p "$HOME/.claude" &&
   curl -fsSL --retry 3 -o "$HOME/.claude/CLAUDE.md" "$RAW_BASE/claude/CLAUDE.md"
 }
+
+check_claude_config() {
+  if [ -s "$HOME/.claude/CLAUDE.md" ]; then check_ok "ユーザー規約 ~/.claude/CLAUDE.md"; else check_ng "ユーザー規約 ~/.claude/CLAUDE.md が無い"; fi
+}

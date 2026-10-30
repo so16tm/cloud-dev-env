@@ -34,16 +34,9 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet
       - name: run dist/godot.sh
         run: sudo bash dist/godot.sh
-      - name: verify tools
-        run: |
-          # 本体はモジュールが失敗しても exit 0 で続行するため、ログで検出する (`! cmd` は set -e で止まらないので if にする)
-          if sudo grep 'FAILED' /var/log/cloud-setup.log; then exit 1; fi
-          sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
-          fd --version
-          bat --version
-          shellcheck --version
-          dotnet --list-sdks
-          godot --headless --version
+      - name: cloud-env-check
+        # セッションで実行するのと同じ確認。setup で失敗したモジュールも NG になる
+        run: sudo cloud-env-check
       - name: verify GDScript + C#
         working-directory: tests/godot-mixed
         env:
@@ -67,15 +60,15 @@ jobs:
         run: sudo rm -rf /usr/local/lib/android
       - name: run dist/react-native.sh
         run: sudo bash dist/react-native.sh
-      - name: verify tools
+      - name: cloud-env-check (Environment variables 未設定)
+        # 設定漏れを NG として検出できるか確かめる。ランナー既定の ANDROID_HOME・JAVA_HOME は外す
         run: |
-          if sudo grep 'FAILED' /var/log/cloud-setup.log; then exit 1; fi
-          sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
-          # クラウドのシェルは profile.d を読まないため、読み込む前に PATH 上で見つかるか確かめる
-          sdkmanager --version
-          adb --version
-          . /etc/profile.d/android.sh
-          "$JAVA_HOME/bin/java" -version
+          out=$(sudo env -u ANDROID_HOME -u JAVA_HOME cloud-env-check) && exit 1
+          echo "$out"
+          grep -q '^NG  ANDROID_HOME' <<< "$out"
+          grep -q '^NG  JAVA_HOME' <<< "$out"
+      - name: cloud-env-check (README の Environment variables を設定)
+        run: sudo env ANDROID_HOME=/opt/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 cloud-env-check
       - name: verify Expo Android build
         run: |
           # クラウドは root で動くため SDK に書き込める。CI は一般ユーザーなので所有者を移して Gradle の自動取得を通す
