@@ -59,13 +59,14 @@ module_android_sdk() {
   mv /tmp/cmdline-tools/cmdline-tools "$sdk/cmdline-tools/latest" &&
   rm -rf /tmp/cmdline-tools.zip /tmp/cmdline-tools || return 1
 
+  # クラウドのセッションのシェルは profile.d も ~/.bashrc の末尾も読まないため、コマンドは PATH 上に置く。
+  # JAVA_HOME と ANDROID_HOME は環境設定の Environment variables で渡す (README 参照)。profile.d はログインシェルと CI 用
+  ln -sf "$sdk/cmdline-tools/latest/bin/sdkmanager" "$sdk/cmdline-tools/latest/bin/avdmanager" \
+    "$sdk/platform-tools/adb" /usr/local/bin/
   cat > /etc/profile.d/android.sh <<EOF
 export JAVA_HOME=$java17
 export ANDROID_HOME=$sdk
-export PATH="\$JAVA_HOME/bin:\$PATH:$sdk/cmdline-tools/latest/bin:$sdk/platform-tools"
 EOF
-  # setup script で設定した環境変数はセッションに引き継がれない。Claude Code の Bash は ~/.bashrc を読むため、そこから読み込む
-  grep -qs /etc/profile.d/android.sh "$HOME/.bashrc" || echo '. /etc/profile.d/android.sh' >> "$HOME/.bashrc"
 
   local sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
   # ANDROID_SDK_PACKAGES は空白区切りの一覧をパッケージごとの引数に分けるため引用しない

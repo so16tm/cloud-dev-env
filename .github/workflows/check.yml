@@ -71,10 +71,11 @@ jobs:
         run: |
           if sudo grep 'FAILED' /var/log/cloud-setup.log; then exit 1; fi
           sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
-          sudo grep -q android.sh /root/.bashrc
+          # クラウドのシェルは profile.d を読まないため、読み込む前に PATH 上で見つかるか確かめる
+          sdkmanager --version
+          adb --version
           . /etc/profile.d/android.sh
-          java -version
-          sdkmanager --list_installed
+          "$JAVA_HOME/bin/java" -version
       - name: verify Expo Android build
         run: |
           # クラウドは root で動くため SDK に書き込める。CI は一般ユーザーなので所有者を移して Gradle の自動取得を通す

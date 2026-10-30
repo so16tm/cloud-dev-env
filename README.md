@@ -25,7 +25,14 @@ claude.ai/code で新しいクラウド環境を作り（または既存の環�
 | `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 |
 | `react-native` | CLI 追加分、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など）、JDK 17。React Native・Expo の Android ビルドまで |
 
-`react-native` 環境では、Android SDK は `/opt/android-sdk` に入れ、`JAVA_HOME`（JDK 17）と `ANDROID_HOME` を `~/.bashrc` から読み込む。入れる SDK パッケージは Expo の blank テンプレートのビルドで使うものに合わせてあり、それ以外が必要なら Gradle がビルド時に自動で取得する。iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認している。
+`react-native` 環境では、Android SDK を `/opt/android-sdk` に入れ、`sdkmanager`・`avdmanager`・`adb` を `/usr/local/bin` に置く。セッションのシェルは setup で書いた設定ファイルを読まないため、環境の **Environment variables** に次の2行を設定する（Gradle が JDK 17 と SDK を使うために必要。`java -version` は既定イメージの 21 のままになる）。
+
+```
+ANDROID_HOME=/opt/android-sdk
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+```
+
+入れる SDK パッケージは Expo の blank テンプレートのビルドで使うものに合わせてあり、それ以外が必要なら Gradle がビルド時に自動で取得する。iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認している。
 
 `godot` 環境は GDScript のみ・C# のみ・混在のどのプロジェクトでも使える。CI で `tests/godot-mixed`（GDScript から C# のクラスを呼ぶ）を実行して確認している。
 
