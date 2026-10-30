@@ -10,3 +10,6 @@ unpkg.com
 cdnjs.cloudflare.com
 godotengine.org
 *.godotengine.org
+polyhaven.com
+dl.polyhaven.org
+api.polyhaven.com
