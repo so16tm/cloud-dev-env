@@ -12,12 +12,10 @@ RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
 MODULES="claude-config base-cli android-sdk"
 
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
-# 版は Expo の既定 (compileSdk 36) と React Native のセットアップ手順 (build-tools 36.0.0) に合わせる
-ANDROID_CMDLINE_TOOLS="${ANDROID_CMDLINE_TOOLS-15859902}"
-ANDROID_PLATFORM="${ANDROID_PLATFORM-36}"
-ANDROID_BUILD_TOOLS="${ANDROID_BUILD_TOOLS-36.0.0}"
-# 空なら入れない (ビルド時に Gradle が必要な版を取得する)
-ANDROID_NDK="${ANDROID_NDK-}"
+# ANDROID_NDK 等の標準の変数名は CI ランナーが設定済みで衝突するため、独自の名前にする
+ANDROID_CMDLINE_TOOLS_BUILD="${ANDROID_CMDLINE_TOOLS_BUILD-15859902}"
+# Expo の blank テンプレートの debug ビルドで Gradle が使ったもの。CI でビルド中に追加取得が起きたら警告が出るので、それに合わせて更新する
+ANDROID_SDK_PACKAGES="${ANDROID_SDK_PACKAGES-platform-tools platforms;android-37.0 build-tools;36.0.0 build-tools;37.0.0 ndk;27.1.12297006 cmake;3.22.1}"
 
 # ---- lib/head.sh ----
 # 制約: 非ゼロ終了でセッションが起動しない / 約5分を超えると環境キャッシュされない。
@@ -46,7 +44,7 @@ module_base_cli() {
 }
 
 # ---- modules/android-sdk.sh ----
-# Android SDK (cmdline-tools / platform-tools / platform / build-tools) と JDK 17。
+# Android SDK (cmdline-tools と ANDROID_SDK_PACKAGES) と JDK 17。
 # React Native・Expo は JDK 17 を推奨しているため、既定イメージの JDK 21 とは別に入れて JAVA_HOME で切り替える。
 # ここに無い platform・NDK は、ライセンス同意済みなので Gradle がビルド時に自動で取得する
 APT_PACKAGES+=(openjdk-17-jdk-headless unzip)
@@ -55,7 +53,7 @@ module_android_sdk() {
   local sdk=/opt/android-sdk java17=/usr/lib/jvm/java-17-openjdk-amd64
   mkdir -p "$sdk/cmdline-tools" &&
   curl -fsSL -o /tmp/cmdline-tools.zip \
-    "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip" &&
+    "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_BUILD}_latest.zip" &&
   rm -rf /tmp/cmdline-tools "$sdk/cmdline-tools/latest" &&
   unzip -qo /tmp/cmdline-tools.zip -d /tmp/cmdline-tools &&
   mv /tmp/cmdline-tools/cmdline-tools "$sdk/cmdline-tools/latest" &&
@@ -71,9 +69,8 @@ EOF
 
   local sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
   yes | JAVA_HOME=$java17 "$sdkmanager" --licenses > /dev/null &&
-  JAVA_HOME=$java17 "$sdkmanager" --install platform-tools \
-    "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" \
-    ${ANDROID_NDK:+"ndk;$ANDROID_NDK"} > /dev/null
+  # shellcheck disable=SC2086 # 空白区切りの一覧をパッケージごとの引数に分ける
+  JAVA_HOME=$java17 "$sdkmanager" --install $ANDROID_SDK_PACKAGES > /dev/null
 }
 
 # ---- lib/tail.sh ----

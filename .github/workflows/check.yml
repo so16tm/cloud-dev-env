@@ -36,6 +36,8 @@ jobs:
         run: sudo bash dist/godot.sh
       - name: verify tools
         run: |
+          # 本体はモジュールが失敗しても exit 0 で続行するため、ログで検出する (`! cmd` は set -e で止まらないので if にする)
+          if sudo grep 'FAILED' /var/log/cloud-setup.log; then exit 1; fi
           sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
           fd --version
           bat --version
@@ -67,6 +69,7 @@ jobs:
         run: sudo bash dist/react-native.sh
       - name: verify tools
         run: |
+          if sudo grep 'FAILED' /var/log/cloud-setup.log; then exit 1; fi
           sudo grep -q '^# ユーザー共通規約' /root/.claude/CLAUDE.md
           sudo grep -q android.sh /root/.bashrc
           . /etc/profile.d/android.sh
@@ -78,11 +81,14 @@ jobs:
           sudo chown -R "$USER" /opt/android-sdk
           . /etc/profile.d/android.sh
           unset ANDROID_SDK_ROOT ANDROID_NDK ANDROID_NDK_HOME ANDROID_NDK_ROOT ANDROID_NDK_LATEST_HOME
+          ls -d /opt/android-sdk/*/* | sort > "$RUNNER_TEMP/sdk-before.txt"
           cd "$RUNNER_TEMP"
           npx --yes create-expo-app@latest app --template blank --yes
           cd app
           npx expo prebuild --platform android
           (cd android && ./gradlew assembleDebug --no-daemon -q)
-          ls android/app/build/outputs/apk/debug/
-          # Gradle が自動で取得した SDK パッケージ。setup で先に入れるべきか判断する材料にする
-          sdkmanager --list_installed
+          ls android/app/build/outputs/apk/debug/app-debug.apk
+          # ビルド中に Gradle が自動取得したものがあれば、ANDROID_SDK_PACKAGES が古い (クラウドで毎回取得になる)
+          ls -d /opt/android-sdk/*/* | sort > "$RUNNER_TEMP/sdk-after.txt"
+          added=$(comm -13 "$RUNNER_TEMP/sdk-before.txt" "$RUNNER_TEMP/sdk-after.txt")
+          if [ -n "$added" ]; then echo "::warning::ビルド中に SDK パッケージを追加取得した。ANDROID_SDK_PACKAGES を更新する: $added"; fi
