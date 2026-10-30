@@ -68,8 +68,9 @@ EOF
   grep -qs /etc/profile.d/android.sh "$HOME/.bashrc" || echo '. /etc/profile.d/android.sh' >> "$HOME/.bashrc"
 
   local sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+  # ANDROID_SDK_PACKAGES は空白区切りの一覧をパッケージごとの引数に分けるため引用しない
+  # shellcheck disable=SC2086
   yes | JAVA_HOME=$java17 "$sdkmanager" --licenses > /dev/null &&
-  # shellcheck disable=SC2086 # 空白区切りの一覧をパッケージごとの引数に分ける
   JAVA_HOME=$java17 "$sdkmanager" --install $ANDROID_SDK_PACKAGES > /dev/null
 }
 
