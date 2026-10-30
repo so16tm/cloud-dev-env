@@ -10,3 +10,5 @@ exp.host
 *.exp.host
 # EAS Build のアップロード・成果物の取得先
 storage.googleapis.com
+# expo-doctor がライブラリの対応状況を照会する React Native Directory
+reactnative.directory

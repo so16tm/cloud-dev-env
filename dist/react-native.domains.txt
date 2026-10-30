@@ -16,3 +16,4 @@ expo.dev
 exp.host
 *.exp.host
 storage.googleapis.com
+reactnative.directory
