@@ -168,6 +168,8 @@ def save_preset(preset: dict, overwrite: bool) -> Path:
     ) as temp:
         json.dump(document, temp, ensure_ascii=False, indent=2)
         temp.write("\n")
+    # NamedTemporaryFile は 0600 で作られるため、通常のファイルと同じ権限にしてから置き換える
+    os.chmod(temp.name, 0o644)
     os.replace(temp.name, path)
     return path
 
@@ -458,6 +460,12 @@ def run_items(items: list[dict], common: dict, force: bool) -> int:
     outputs = [str(Path(item["output"]).resolve()).casefold() for item in items]
     if len(set(outputs)) != len(outputs):
         raise ValueError("output が重複している")
+    # モデルの読み込み (約10秒) の前に、上書きになる出力を止める
+    if not force:
+        for item in items:
+            path = Path(item["output"])
+            if path.exists() or path.with_suffix(".json").exists():
+                raise FileExistsError(f"出力先が既にある (上書きは --force): {path}")
     synth = Synthesizer()
     failed = 0
     for index, item in enumerate(items):
