@@ -43,6 +43,42 @@ jobs:
           if sudo cloud-prepare unknown-name; then exit 1; fi
           sudo cloud-prepare godot-export-templates
           sudo ls /root/.local/share/godot/export_templates/4.7.2.stable.mono/ | grep -q linux_release.x86_64
+      - name: game-voice
+        # cloud-prepare は RAW_BASE から CLI を取得するため、検証中のコミットを指す (main は CDN のキャッシュで古いことがある)
+        env:
+          RAW_BASE: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
+        run: |
+          start=$(date +%s)
+          sudo env RAW_BASE="$RAW_BASE" cloud-prepare game-voice
+          echo "::notice::cloud-prepare game-voice: $(( $(date +%s) - start ))s, $(sudo du -sh /opt/game-voice | cut -f1)"
+          mkdir "$RUNNER_TEMP/voice"
+          cd "$RUNNER_TEMP/voice"
+          git init -q
+          sudo game-voice presets | grep -q '^cheerful_guide:'
+          /usr/bin/time -v sudo game-voice say "こんにちは。冒険を始めましょう。" --preset cheerful_guide -o out/guide.wav 2> time.log
+          echo "::notice::say (モデル読み込み込み): $(grep -E 'Elapsed|Maximum resident' time.log | tr -s ' ' | paste -sd ';')"
+          if sudo game-voice say "もう一度" -o out/guide.wav; then exit 1; fi
+          sudo game-voice save-preset '{"id": "my_guide", "name": "案内役", "caption": "明るい女性の声。", "voice": "out/guide.wav", "seed": 7}'
+          grep -q '"voice": "out/guide.wav"' voice-presets.json
+          cat > batch.json <<'EOF'
+          {"preset": "my_guide", "items": [
+            {"text": "クエストを受け付けました。", "output": "out/quest.wav", "caption": "楽しそうに。"},
+            {"text": "ここは通行止めだ。", "output": "out/guard.wav", "preset": "stern_guardian"}
+          ]}
+          EOF
+          sudo game-voice batch batch.json
+          python3 - <<'EOF'
+          import json, struct, wave
+          for name in ("guide", "quest", "guard"):
+              with wave.open(f"out/{name}.wav") as w:
+                  assert (w.getframerate(), w.getsampwidth(), w.getnchannels()) == (48000, 2, 1), name
+                  frames = w.readframes(w.getnframes())
+              samples = struct.unpack(f"<{len(frames) // 2}h", frames)
+              assert w.getnframes() > 48000 * 0.5 and max(map(abs, samples)) > 1000, name
+              meta = json.load(open(f"out/{name}.json", encoding="utf-8"))
+              print(name, meta["preset"], meta["voice"], meta["seed"], meta["duration_seconds"], meta["generation_seconds"])
+          assert json.load(open("out/quest.json"))["voice"].endswith("out/guide.wav")
+          EOF
       - name: verify GDScript + C#
         working-directory: tests/godot-mixed
         env:

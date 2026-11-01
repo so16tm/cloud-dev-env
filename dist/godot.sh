@@ -10,7 +10,7 @@ RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
 # Godot 開発用 (GDScript / C# 両対応)。Node.js / Python / Docker は既定イメージのものを使う
 MODULES="claude-config base-cli godot"
 # 毎回は使わないもの。セッション内で cloud-prepare <名前> で入れる
-ON_DEMAND="godot-export-templates"
+ON_DEMAND="godot-export-templates game-voice"
 
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
 GODOT_VERSION="${GODOT_VERSION-4.7.2}"
@@ -108,6 +108,37 @@ module_godot_export_templates() {
   rm -rf /tmp/tpl /tmp/tpl.tpz
 }
 
+# ---- modules/game-voice.sh ----
+# ON_DEMAND (cloud-prepare game-voice)。依存とモデルで数GBあり、台詞を作るときしか使わないため setup には入れない。
+# so16tm/game-voice (private) から ONNX INT8 の CPU 推論だけを tools/game-voice に移植したもの
+about_game_voice() { echo "日本語音声の生成 game-voice (Irodori-TTS の ONNX INT8 版、CPU で推論)。依存とモデルで数GB。ゲームの台詞を WAV で作るときに使う"; }
+
+module_game_voice() {
+  local dir=/opt/game-voice f
+  # torch は CPU 版を先に入れる (後の依存解決で CUDA 版を取りに行かないように)。
+  # irodori-tts は透かし・本文の正規化・トークン分割だけを使うため、学習用の重い依存は入れない
+  mkdir -p "$dir" &&
+  python3 -m venv "$dir/venv" &&
+  PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.10.0 torchaudio==2.10.0 &&
+  PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q \
+    numpy==2.2.6 onnxruntime==1.23.2 "tokenizers>=0.22,<1" "huggingface_hub>=0.34,<2" \
+    "soundfile>=0.12" "pyloudnorm>=0.1.1" "safetensors>=0.7" \
+    "silentcipher @ git+https://github.com/SesameAILabs/silentcipher.git@d46d7d0893a583d8968ab3a6626e2289faec9152" &&
+  PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q --no-deps \
+    "irodori-tts @ git+https://github.com/Aratako/Irodori-TTS.git@82c9980b6bfe8d4bbcc45f05b6ed729316694e7c" || return 1
+  for f in game_voice.py presets.json LICENSE-muse-irodori-voice.txt; do
+    curl -fsSL --retry 3 -o "$dir/$f" "$RAW_BASE/tools/game-voice/$f" || return 1
+  done
+  cat > /usr/local/bin/game-voice <<EOF
+#!/bin/sh
+export HF_HOME=$dir/hf
+exec $dir/venv/bin/python $dir/game_voice.py "\$@"
+EOF
+  chmod +x /usr/local/bin/game-voice &&
+  game-voice download
+}
+
 # ---- lib/tail.sh ----
 # apt は並列実行するとロックで衝突するため、先に一括で入れてからモジュールを並列実行する。
 if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
@@ -163,6 +194,8 @@ chmod +x /usr/local/bin/cloud-env-check
   echo '#!/bin/bash'
   echo '# 生成物: cloud-dev-env の setup が書き出す。毎回は使わないツールを必要なときに入れる'
   echo "ON_DEMAND=\"${ON_DEMAND:-}\""
+  # 取得元はこのリポジトリの main。CI では検証中のコミットを指すよう上書きする
+  echo "RAW_BASE=\"\${RAW_BASE:-$RAW_BASE}\""
   for m in ${ON_DEMAND:-}; do declare -f "about_${m//-/_}" "module_${m//-/_}"; done
   cat <<'EOF'
 if [ $# -eq 0 ]; then

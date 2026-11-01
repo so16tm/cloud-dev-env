@@ -24,7 +24,7 @@ setup に入れるか、必要なときに入れるかは、使う頻度と所�
 
 | 環境 | setup で入れる | 必要なときに入れる |
 |---|---|---|
-| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う） |
+| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う）、`cloud-prepare game-voice`（音声生成。台詞を作るときだけ使う） |
 | `react-native` | CLI 追加分、JDK 17、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など） | なし（一覧に無い SDK パッケージは、ビルド時に Gradle が自動で取得する） |
 
 `cloud-prepare` を引数なしで実行すると、準備できるものと用途が表示される。クラウド用の CLAUDE.md で、必要になったら Claude がこれを使うよう指示している。
@@ -39,6 +39,25 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 iOS のビルド（macOS が必要）とエミュレーターは扱わない。iOS は EAS Build（`npx eas-cli build`）を使う。EAS に必要な `EXPO_TOKEN` は環境変数に設定する（環境の利用者全員が読める点に注意）。CI で Expo の blank テンプレートから debug APK をビルドして確認し、ビルド中に SDK パッケージの追加取得が起きたら警告を出す。
 
 `godot` 環境は GDScript のみ・C# のみ・混在のどのプロジェクトでも使える。CI で `tests/godot-mixed`（GDScript から C# のクラスを呼ぶ）を実行して確認している。
+
+### 音声生成（game-voice）
+
+`cloud-prepare game-voice` で、日本語の台詞を WAV（48kHz・16bit・モノラル）で作る `game-voice` コマンドを入れる。[Irodori-TTS-v4.1-Small-MF](https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF) の ONNX INT8 版を CPU で推論する。手元用の so16tm/game-voice（private）から、生成・一括生成・参照音声・キャラクタープリセットだけを `tools/game-voice/` に移植した。サーバーと MCP は持たず、Claude がコマンドを直接実行する。
+
+```
+game-voice say "こんにちは。冒険を始めましょう。" --preset cheerful_guide -o assets/voice/guide.wav
+game-voice batch lines.json          # {"preset": ..., "items": [{"text": ..., "output": ..., "preset": ...}]}
+game-voice presets [ID]
+game-voice save-preset '{"id": "my_guide", "name": "案内役", "caption": "...", "voice": "assets/voice/guide.wav", "seed": 7}'
+```
+
+- 同名の `.json` に、seed・caption・プリセットなど再生成に必要な設定を記録する。既存のファイルは `--force` が無ければ上書きしない
+- プリセットは組み込みの6種と、作業中のリポジトリのルートにある `voice-presets.json`。参照音声のパスはこのファイルからの相対で保存する。生成した音声やプリセットはリポジトリにコミットしないと、セッションの終了とともに消える
+- 80文字を超える本文は、公式サーバーと同じく句読点で区切って順に生成し、つなげる
+- 生成した音声には、公式と同じ SilentCipher の透かしを入れる。透かしのモデルを読み込めないときは出力しない
+- 参照音声の音量の正規化は、公式の audiotools の代わりに pyloudnorm で行う（同じ BS.1770 の測定。わずかに差が出ることがある）
+- 再生はできない。聞くときは、コミットして手元で取得する
+- モデルは [MIT ライセンスと追加の制限](https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF#-license--ethical-restrictions)に従って使う。実在の人物の声を参照するには、本人の明示的な同意が要る。ONNX の推論の流れは [kgmkm/muse-irodori-voice](https://github.com/kgmkm/muse-irodori-voice/tree/2a41b6143c2a9505406c295cc1a309ff3d63f6ba)（MIT、`tools/game-voice/LICENSE-muse-irodori-voice.txt`）に基づく
 
 Godot のバージョンが違うプロジェクトや、Unity・Unreal Engine など重いエンジンは、環境を分ける（5分のキャッシュ制限に収めるため）。
 
@@ -65,6 +84,7 @@ Node.js・Python（uv, ruff）・Docker・git・gh・jq・ripgrep はクラウ�
 | `envs/<env>.env` | 環境ごとの定義。setup で入れるモジュール（`MODULES`）、必要なときに入れるモジュール（`ON_DEMAND`）と変数 |
 | `envs/<env>.domains` | 環境ごとに追加で許可するドメイン（任意） |
 | `domains/common.txt` | 全環境共通で許可するドメイン（Trusted の既定リストに無いもの） |
+| `tools/<name>/` | モジュールがクラウドで `$RAW_BASE` から取得するファイル（`game-voice` の CLI など） |
 | `lib/head.sh`, `lib/tail.sh` | 本体の共通前後処理（ログ、apt 一括導入、モジュールの並列実行） |
 | `build.sh` | `dist/` を生成する |
 | `sync-claude.sh` | 手元のユーザー規約から `claude/CLAUDE.md` を生成する |

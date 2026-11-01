@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "cheerful_guide",
+      "name": "明るい案内役",
+      "description": "親しみやすく、元気に案内する女性の声。",
+      "caption": "明るく親しみやすい女性の声。はきはきとした話し方で、聞き取りやすく元気に案内する。",
+      "voice": "none",
+      "seed": 31001,
+      "speed": 1.0,
+      "num_steps": null
+    },
+    {
+      "id": "brave_hero",
+      "name": "勇敢な青年",
+      "description": "力強くまっすぐな青年男性の声。",
+      "caption": "勇敢で若々しい男性の声。落ち着いた力強さを保ち、自信のあるまっすぐな話し方をする。",
+      "voice": "none",
+      "seed": 31002,
+      "speed": 1.0,
+      "num_steps": null
+    },
+    {
+      "id": "calm_narrator",
+      "name": "落ち着いた語り手",
+      "description": "穏やかで聞き心地のよい女性の語り声。",
+      "caption": "落ち着いた柔らかな女性の声。ゆったりとした間を取り、穏やかで聞き心地よく語る。",
+      "voice": "none",
+      "seed": 31003,
+      "speed": 1.0,
+      "num_steps": null
+    },
+    {
+      "id": "mysterious_mage",
+      "name": "静かな魔法使い",
+      "description": "静かで神秘的な女性の声。",
+      "caption": "静かで神秘的な女性の声。低めの落ち着いた調子で、言葉を丁寧にゆっくり話す。",
+      "voice": "none",
+      "seed": 31004,
+      "speed": 1.0,
+      "num_steps": null
+    },
+    {
+      "id": "stern_guardian",
+      "name": "厳格な守護者",
+      "description": "低く重みのある男性の守護者の声。",
+      "caption": "低く重みのある男性の声。厳格でぶれない調子を保ち、言葉を短く明瞭に話す。",
+      "voice": "none",
+      "seed": 31005,
+      "speed": 1.0,
+      "num_steps": null
+    },
+    {
+      "id": "playful_companion",
+      "name": "陽気な相棒",
+      "description": "軽快で表情豊かな若い中性的な声。",
+      "caption": "若々しく中性的な声。陽気で軽快な話し方をし、表情豊かに親しみを込めて話す。",
+      "voice": "none",
+      "seed": 31006,
+      "speed": 1.0,
+      "num_steps": null
+    }
+  ]
+}

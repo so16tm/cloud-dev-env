@@ -53,6 +53,8 @@ chmod +x /usr/local/bin/cloud-env-check
   echo '#!/bin/bash'
   echo '# 生成物: cloud-dev-env の setup が書き出す。毎回は使わないツールを必要なときに入れる'
   echo "ON_DEMAND=\"${ON_DEMAND:-}\""
+  # 取得元はこのリポジトリの main。CI では検証中のコミットを指すよう上書きする
+  echo "RAW_BASE=\"\${RAW_BASE:-$RAW_BASE}\""
   for m in ${ON_DEMAND:-}; do declare -f "about_${m//-/_}" "module_${m//-/_}"; done
   cat <<'EOF'
 if [ $# -eq 0 ]; then
