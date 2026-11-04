@@ -8,8 +8,9 @@ huggingface.co
 hf.co
 *.hf.co
 
-# PyTorch の wheel
+# PyTorch の wheel (download-r2 は実体の配信元)
 download.pytorch.org
+download-r2.pytorch.org
 
 # Playwright のブラウザ取得元 (playwright-core の PLAYWRIGHT_CDN_MIRRORS)
 cdn.playwright.dev
