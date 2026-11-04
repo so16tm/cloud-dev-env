@@ -33,7 +33,11 @@ jobs:
         # クラウド環境には .NET が無いため、setup script が入れたものだけで動くか確かめる
         run: sudo rm -rf /usr/share/dotnet
       - name: run dist/godot.sh
-        run: sudo bash dist/godot.sh
+        # モジュールは RAW_BASE から tools/ を取得するため、検証中のコミットを指す (main は CDN のキャッシュで古いことがある)
+        run: |
+          start=$(date +%s)
+          sudo env RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}" bash dist/godot.sh
+          echo "::notice::setup: $(( $(date +%s) - start ))s, game-voice $(sudo du -sh /opt/game-voice | cut -f1)"
       - name: cloud-env-check
         # セッションで実行するのと同じ確認。setup で失敗したモジュールも NG になる
         run: sudo cloud-env-check
@@ -44,13 +48,7 @@ jobs:
           sudo cloud-prepare godot-export-templates
           sudo ls /root/.local/share/godot/export_templates/4.7.2.stable.mono/ | grep -q linux_release.x86_64
       - name: game-voice
-        # cloud-prepare は RAW_BASE から CLI を取得するため、検証中のコミットを指す (main は CDN のキャッシュで古いことがある)
-        env:
-          RAW_BASE: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
         run: |
-          start=$(date +%s)
-          sudo env RAW_BASE="$RAW_BASE" cloud-prepare game-voice
-          echo "::notice::cloud-prepare game-voice: $(( $(date +%s) - start ))s, $(sudo du -sh /opt/game-voice | cut -f1)"
           mkdir "$RUNNER_TEMP/voice"
           cd "$RUNNER_TEMP/voice"
           git init -q

@@ -3,8 +3,8 @@
 # module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する
 # shellcheck disable=SC2317
 
-# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う
-RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
+# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う (CI では検証中のコミットを指すよう上書きする)
+RAW_BASE="${RAW_BASE:-https://raw.githubusercontent.com/so16tm/cloud-dev-env/main}"
 
 # ---- envs/react-native.env ----
 # React Native / Expo のスマホアプリ開発用 (Android はビルドまで)。Node.js は既定イメージのものを使う。

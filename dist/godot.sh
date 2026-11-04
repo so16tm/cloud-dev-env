@@ -3,14 +3,14 @@
 # module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する
 # shellcheck disable=SC2317
 
-# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う
-RAW_BASE="https://raw.githubusercontent.com/so16tm/cloud-dev-env/main"
+# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う (CI では検証中のコミットを指すよう上書きする)
+RAW_BASE="${RAW_BASE:-https://raw.githubusercontent.com/so16tm/cloud-dev-env/main}"
 
 # ---- envs/godot.env ----
 # Godot 開発用 (GDScript / C# 両対応)。Node.js / Python / Docker は既定イメージのものを使う
-MODULES="claude-config base-cli godot"
+MODULES="claude-config base-cli godot game-voice"
 # 毎回は使わないもの。セッション内で cloud-prepare <名前> で入れる
-ON_DEMAND="godot-export-templates game-voice"
+ON_DEMAND="godot-export-templates"
 
 # ${VAR-default} 形式にして、CI 等から上書きできるようにする
 GODOT_VERSION="${GODOT_VERSION-4.7.2}"
@@ -89,29 +89,11 @@ check_godot() {
   done
 }
 
-# ---- modules/godot-export-templates.sh ----
-# ON_DEMAND (cloud-prepare godot-export-templates)。約1GB あり、エクスポートするときしか使わないため setup には入れない
-about_godot_export_templates() { echo "Godot .NET 版のエクスポートテンプレート (約1GB)。ゲームを書き出すときに使う"; }
-
-module_godot_export_templates() {
-  # 環境の変数を使えないため、入っている Godot から版を求める (例 4.7.2.stable.mono.official.xxx → 4.7.2)
-  local v ver base tpl
-  v=$(godot --headless --version) || return 1
-  ver=${v%%.stable*}
-  base="https://github.com/godotengine/godot/releases/download/${ver}-stable"
-  tpl="$HOME/.local/share/godot/export_templates/${ver}.stable.mono"
-  mkdir -p "$tpl" &&
-  curl -fsSL -o /tmp/tpl.tpz "$base/Godot_v${ver}-stable_mono_export_templates.tpz" &&
-  rm -rf /tmp/tpl &&
-  unzip -qo /tmp/tpl.tpz -d /tmp/tpl &&
-  mv /tmp/tpl/templates/* "$tpl/" &&
-  rm -rf /tmp/tpl /tmp/tpl.tpz
-}
-
 # ---- modules/game-voice.sh ----
-# ON_DEMAND (cloud-prepare game-voice)。依存とモデルで数GBあり、台詞を作るときしか使わないため setup には入れない。
+# 日本語音声の生成 (Irodori-TTS の ONNX INT8 版を CPU で推論)。依存とモデルで約3.2GB、導入に約70秒かかる。
+# 必要なときに入れると使うセッションのたびに取得し直すため、setup で入れて環境キャッシュに載せる。
 # so16tm/game-voice (private) から ONNX INT8 の CPU 推論だけを tools/game-voice に移植したもの
-about_game_voice() { echo "日本語音声の生成 game-voice (Irodori-TTS の ONNX INT8 版、CPU で推論)。依存とモデルで数GB。ゲームの台詞を WAV で作るときに使う"; }
+APT_PACKAGES+=(python3-venv)
 
 module_game_voice() {
   local dir=/opt/game-voice f
@@ -137,6 +119,33 @@ exec $dir/venv/bin/python $dir/game_voice.py "\$@"
 EOF
   chmod +x /usr/local/bin/game-voice &&
   game-voice download
+}
+
+check_game_voice() {
+  if [ -x /usr/local/bin/game-voice ] && [ -d /opt/game-voice/hf/hub/models--Ryoppi--Irodori-TTS-v4.1-Small-MF-ONNX-int8 ]; then
+    check_ok "game-voice (音声生成。モデル取得済み)"
+  else
+    check_ng "game-voice が無いかモデルが未取得 (/var/log/cloud-setup.log を確認)"
+  fi
+}
+
+# ---- modules/godot-export-templates.sh ----
+# ON_DEMAND (cloud-prepare godot-export-templates)。約1GB あり、エクスポートするときしか使わないため setup には入れない
+about_godot_export_templates() { echo "Godot .NET 版のエクスポートテンプレート (約1GB)。ゲームを書き出すときに使う"; }
+
+module_godot_export_templates() {
+  # 環境の変数を使えないため、入っている Godot から版を求める (例 4.7.2.stable.mono.official.xxx → 4.7.2)
+  local v ver base tpl
+  v=$(godot --headless --version) || return 1
+  ver=${v%%.stable*}
+  base="https://github.com/godotengine/godot/releases/download/${ver}-stable"
+  tpl="$HOME/.local/share/godot/export_templates/${ver}.stable.mono"
+  mkdir -p "$tpl" &&
+  curl -fsSL -o /tmp/tpl.tpz "$base/Godot_v${ver}-stable_mono_export_templates.tpz" &&
+  rm -rf /tmp/tpl &&
+  unzip -qo /tmp/tpl.tpz -d /tmp/tpl &&
+  mv /tmp/tpl/templates/* "$tpl/" &&
+  rm -rf /tmp/tpl /tmp/tpl.tpz
 }
 
 # ---- lib/tail.sh ----

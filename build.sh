@@ -26,8 +26,8 @@ build() {
     echo '# module_* は lib/tail.sh から名前を組み立てて間接的に呼ぶため、到達不能の誤検知を抑止する'
     echo '# shellcheck disable=SC2317'
     echo
-    echo "# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う"
-    echo "RAW_BASE=\"$RAW_BASE\""
+    echo "# 本体の取得元。モジュールが同じリポジトリのファイルを取得するときに使う (CI では検証中のコミットを指すよう上書きする)"
+    echo "RAW_BASE=\"\${RAW_BASE:-$RAW_BASE}\""
     echo
     cat "$env_file"
     echo

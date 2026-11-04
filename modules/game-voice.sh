@@ -1,7 +1,8 @@
 # ---- modules/game-voice.sh ----
-# ON_DEMAND (cloud-prepare game-voice)。依存とモデルで数GBあり、台詞を作るときしか使わないため setup には入れない。
+# 日本語音声の生成 (Irodori-TTS の ONNX INT8 版を CPU で推論)。依存とモデルで約3.2GB、導入に約70秒かかる。
+# 必要なときに入れると使うセッションのたびに取得し直すため、setup で入れて環境キャッシュに載せる。
 # so16tm/game-voice (private) から ONNX INT8 の CPU 推論だけを tools/game-voice に移植したもの
-about_game_voice() { echo "日本語音声の生成 game-voice (Irodori-TTS の ONNX INT8 版、CPU で推論)。依存とモデルで数GB。ゲームの台詞を WAV で作るときに使う"; }
+APT_PACKAGES+=(python3-venv)
 
 module_game_voice() {
   local dir=/opt/game-voice f
@@ -27,4 +28,12 @@ exec $dir/venv/bin/python $dir/game_voice.py "\$@"
 EOF
   chmod +x /usr/local/bin/game-voice &&
   game-voice download
+}
+
+check_game_voice() {
+  if [ -x /usr/local/bin/game-voice ] && [ -d /opt/game-voice/hf/hub/models--Ryoppi--Irodori-TTS-v4.1-Small-MF-ONNX-int8 ]; then
+    check_ok "game-voice (音声生成。モデル取得済み)"
+  else
+    check_ng "game-voice が無いかモデルが未取得 (/var/log/cloud-setup.log を確認)"
+  fi
 }

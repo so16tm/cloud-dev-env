@@ -24,7 +24,7 @@ setup に入れるか、必要なときに入れるかは、使う頻度と所�
 
 | 環境 | setup で入れる | 必要なときに入れる |
 |---|---|---|
-| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0 | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う）、`cloud-prepare game-voice`（音声生成。台詞を作るときだけ使う） |
+| `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0、音声生成 `game-voice`（依存とモデルで約3.2GB、導入約70秒） | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う） |
 | `react-native` | CLI 追加分、JDK 17、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など） | なし（一覧に無い SDK パッケージは、ビルド時に Gradle が自動で取得する） |
 
 `cloud-prepare` を引数なしで実行すると、準備できるものと用途が表示される。クラウド用の CLAUDE.md で、必要になったら Claude がこれを使うよう指示している。
@@ -42,7 +42,7 @@ iOS のビルド（macOS が必要）とエミュレーターは扱わない。i
 
 ### 音声生成（game-voice）
 
-`cloud-prepare game-voice` で、日本語の台詞を WAV（48kHz・16bit・モノラル）で作る `game-voice` コマンドを入れる。[Irodori-TTS-v4.1-Small-MF](https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF) の ONNX INT8 版を CPU で推論する。手元用の so16tm/game-voice（private）から、生成・一括生成・参照音声・キャラクタープリセットだけを `tools/game-voice/` に移植した。サーバーと MCP は持たず、Claude がコマンドを直接実行する。
+godot 環境の setup で、日本語の台詞を WAV（48kHz・16bit・モノラル）で作る `game-voice` コマンドを入れる。必要なときに入れると、使うセッションのたびに約3.2GB を取得し直すため、setup に入れて環境キャッシュに載せている。[Irodori-TTS-v4.1-Small-MF](https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small-MF) の ONNX INT8 版を CPU で推論する。手元用の so16tm/game-voice（private）から、生成・一括生成・参照音声・キャラクタープリセットだけを `tools/game-voice/` に移植した。サーバーと MCP は持たず、Claude がコマンドを直接実行する。
 
 ```
 game-voice say "こんにちは。冒険を始めましょう。" --preset cheerful_guide -o assets/voice/guide.wav
