@@ -16,3 +16,10 @@ dl.polyhaven.org
 api.polyhaven.com
 images.pexels.com
 prj-beatrice.com
+quaternius.com
+kenney.nl
+itch.io
+*.itch.io
+img.itch.zone
+drive.google.com
+drive.usercontent.google.com

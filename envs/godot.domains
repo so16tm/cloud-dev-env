@@ -11,3 +11,13 @@ api.polyhaven.com
 images.pexels.com
 # Beatrice (音声変換) の配布元
 prj-beatrice.com
+# CC0 の3D・2Dアセット (Quaternius / Kenney / Kay Lousberg)
+quaternius.com
+kenney.nl
+# itch.io の配布ページと画像 (Kay Lousberg・Kenney・Quaternius。ファイル本体は既定リストの *.r2.cloudflarestorage.com から配信)
+itch.io
+*.itch.io
+img.itch.zone
+# Quaternius のダウンロードボタンの多くは Google Drive の共有フォルダを指す
+drive.google.com
+drive.usercontent.google.com
