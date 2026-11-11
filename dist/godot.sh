@@ -24,6 +24,9 @@ export DEBIAN_FRONTEND=noninteractive
 APT_PACKAGES=()
 failed=()
 echo "[setup] start $(date -Is) modules: $MODULES"
+# setup が途中で打ち切られても NG と分かるよう、最後に本物で置き換える仮の確認コマンドを先に置く
+printf '#!/bin/bash\necho "NG  setup が最後まで終わっていない (/var/log/cloud-setup*.log を確認)"\nexit 1\n' > /usr/local/bin/cloud-env-check
+chmod +x /usr/local/bin/cloud-env-check
 
 # cloud-env-check の結果の出力。各モジュールは check_<name>() にセッション内で確かめる項目を書き、これで報告する
 check_ok() { echo "OK  $*"; }
@@ -99,10 +102,13 @@ module_game_voice() {
   local dir=/opt/game-voice f
   # torch は CPU 版を先に入れる (後の依存解決で CUDA 版を取りに行かないように)。
   # irodori-tts は透かし・本文の正規化・トークン分割だけを使うため、学習用の重い依存は入れない
+  # 工程ごとの時刻を残す (クラウドで setup が打ち切られたときに、どこで時間がかかったか分かるように)
+  echo "[game-voice] torch $(date -Is)"
   mkdir -p "$dir" &&
   python3 -m venv "$dir/venv" &&
   PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q --index-url https://download.pytorch.org/whl/cpu \
     torch==2.10.0 torchaudio==2.10.0 &&
+  echo "[game-voice] deps $(date -Is)" &&
   PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q \
     numpy==2.2.6 onnxruntime==1.23.2 "tokenizers>=0.22,<1" "huggingface_hub>=0.34,<2" \
     "soundfile>=0.12" "pyloudnorm>=0.1.1" "safetensors>=0.7" \
@@ -118,7 +124,9 @@ export HF_HOME=$dir/hf
 exec $dir/venv/bin/python $dir/game_voice.py "\$@"
 EOF
   chmod +x /usr/local/bin/game-voice &&
-  game-voice download
+  echo "[game-voice] models $(date -Is)" &&
+  game-voice download &&
+  echo "[game-voice] end $(date -Is)"
 }
 
 check_game_voice() {
@@ -160,19 +168,20 @@ if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
 fi
 
 declare -A pids
+# モジュールのログは /var/log に直接書く (setup が途中で打ち切られても、どこまで進んだか残るように)
 for m in $MODULES; do
-  "module_${m//-/_}" > "/tmp/setup-$m.log" 2>&1 &
+  "module_${m//-/_}" > "/var/log/cloud-setup-$m.log" 2>&1 &
   pids[$m]=$!
 done
 
 for m in $MODULES; do
   if wait "${pids[$m]}"; then
-    echo "[setup] $m: done"
+    echo "[setup] $m: done $(date -Is)"
   else
-    echo "[setup] $m: FAILED (続行します)"
+    echo "[setup] $m: FAILED $(date -Is) (続行します)"
     failed+=("$m")
   fi
-  cat "/tmp/setup-$m.log"
+  cat "/var/log/cloud-setup-$m.log"
 done
 
 # setup の時点では環境の Environment variables が未設定で、出力もセッションに表示されないため、

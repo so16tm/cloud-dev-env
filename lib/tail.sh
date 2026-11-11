@@ -10,19 +10,20 @@ if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
 fi
 
 declare -A pids
+# モジュールのログは /var/log に直接書く (setup が途中で打ち切られても、どこまで進んだか残るように)
 for m in $MODULES; do
-  "module_${m//-/_}" > "/tmp/setup-$m.log" 2>&1 &
+  "module_${m//-/_}" > "/var/log/cloud-setup-$m.log" 2>&1 &
   pids[$m]=$!
 done
 
 for m in $MODULES; do
   if wait "${pids[$m]}"; then
-    echo "[setup] $m: done"
+    echo "[setup] $m: done $(date -Is)"
   else
-    echo "[setup] $m: FAILED (続行します)"
+    echo "[setup] $m: FAILED $(date -Is) (続行します)"
     failed+=("$m")
   fi
-  cat "/tmp/setup-$m.log"
+  cat "/var/log/cloud-setup-$m.log"
 done
 
 # setup の時点では環境の Environment variables が未設定で、出力もセッションに表示されないため、

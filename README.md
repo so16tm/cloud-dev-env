@@ -10,7 +10,7 @@ claude.ai/code で新しいクラウド環境を作り（または既存の環�
 1. **Setup script**: `dist/<env>.setup.sh` の中身を貼る。この起動スクリプトがセッション開始時に本体 `dist/<env>.sh` をこのリポジトリから取得して実行する
 2. **Network access**: **Custom** にし、**Allowed domains** に `dist/<env>.domains.txt` の中身を貼り、**Also include default list of common package managers** にチェックを入れる（Trusted の既定リストも残すため）
 
-setup は確認用の `cloud-env-check` も入れる。クラウド用の CLAUDE.md で、セッションの最初の依頼の前に Claude がこれを実行し、`NG`（setup の失敗、Environment variables の設定漏れなど）があれば対処と一緒に報告するよう指示している。setup の時点では Environment variables が未設定で、出力もセッションに表示されないため、確認はセッション内で行う。詳しいログは `/var/log/cloud-setup.log`。
+setup は確認用の `cloud-env-check` も入れる。クラウド用の CLAUDE.md で、セッションの最初の依頼の前に Claude がこれを実行し、`NG`（setup の失敗、Environment variables の設定漏れなど）があれば対処と一緒に報告するよう指示している。setup の時点では Environment variables が未設定で、出力もセッションに表示されないため、確認はセッション内で行う。詳しいログは `/var/log/cloud-setup.log`（モジュールごとは `/var/log/cloud-setup-<name>.log`）。setup が途中で打ち切られた場合も、最初に置く仮の `cloud-env-check` が NG を返す。
 
 ## 更新の反映
 

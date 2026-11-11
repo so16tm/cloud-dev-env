@@ -27,6 +27,9 @@ export DEBIAN_FRONTEND=noninteractive
 APT_PACKAGES=()
 failed=()
 echo "[setup] start $(date -Is) modules: $MODULES"
+# setup が途中で打ち切られても NG と分かるよう、最後に本物で置き換える仮の確認コマンドを先に置く
+printf '#!/bin/bash\necho "NG  setup が最後まで終わっていない (/var/log/cloud-setup*.log を確認)"\nexit 1\n' > /usr/local/bin/cloud-env-check
+chmod +x /usr/local/bin/cloud-env-check
 
 # cloud-env-check の結果の出力。各モジュールは check_<name>() にセッション内で確かめる項目を書き、これで報告する
 check_ok() { echo "OK  $*"; }
@@ -122,19 +125,20 @@ if [ ${#APT_PACKAGES[@]} -gt 0 ]; then
 fi
 
 declare -A pids
+# モジュールのログは /var/log に直接書く (setup が途中で打ち切られても、どこまで進んだか残るように)
 for m in $MODULES; do
-  "module_${m//-/_}" > "/tmp/setup-$m.log" 2>&1 &
+  "module_${m//-/_}" > "/var/log/cloud-setup-$m.log" 2>&1 &
   pids[$m]=$!
 done
 
 for m in $MODULES; do
   if wait "${pids[$m]}"; then
-    echo "[setup] $m: done"
+    echo "[setup] $m: done $(date -Is)"
   else
-    echo "[setup] $m: FAILED (続行します)"
+    echo "[setup] $m: FAILED $(date -Is) (続行します)"
     failed+=("$m")
   fi
-  cat "/tmp/setup-$m.log"
+  cat "/var/log/cloud-setup-$m.log"
 done
 
 # setup の時点では環境の Environment variables が未設定で、出力もセッションに表示されないため、

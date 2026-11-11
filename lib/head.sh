@@ -7,6 +7,9 @@ export DEBIAN_FRONTEND=noninteractive
 APT_PACKAGES=()
 failed=()
 echo "[setup] start $(date -Is) modules: $MODULES"
+# setup が途中で打ち切られても NG と分かるよう、最後に本物で置き換える仮の確認コマンドを先に置く
+printf '#!/bin/bash\necho "NG  setup が最後まで終わっていない (/var/log/cloud-setup*.log を確認)"\nexit 1\n' > /usr/local/bin/cloud-env-check
+chmod +x /usr/local/bin/cloud-env-check
 
 # cloud-env-check の結果の出力。各モジュールは check_<name>() にセッション内で確かめる項目を書き、これで報告する
 check_ok() { echo "OK  $*"; }
