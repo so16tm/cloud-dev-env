@@ -32,11 +32,15 @@ jobs:
       - name: ランナー既定の .NET を外す
         # クラウド環境には .NET が無いため、setup script が入れたものだけで動くか確かめる
         run: sudo rm -rf /usr/share/dotnet
+      - uses: actions/setup-python@v5
+        # クラウドでは PATH の python3 が 3.13 (システムの /usr/bin/python3.12 とは別)。同じ状態で setup を実行する
+        with:
+          python-version: "3.13"
       - name: run dist/godot.sh
         # モジュールは RAW_BASE から tools/ を取得するため、検証中のコミットを指す (main は CDN のキャッシュで古いことがある)
         run: |
           start=$(date +%s)
-          sudo env RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}" bash dist/godot.sh
+          sudo env PATH="$PATH" RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}" bash dist/godot.sh
           echo "::notice::setup: $(( $(date +%s) - start ))s, game-voice $(sudo du -sh /opt/game-voice | cut -f1)"
       - name: cloud-env-check
         # セッションで実行するのと同じ確認。setup で失敗したモジュールも NG になる

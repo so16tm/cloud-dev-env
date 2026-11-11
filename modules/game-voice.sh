@@ -9,9 +9,12 @@ module_game_voice() {
   # torch は CPU 版を先に入れる (後の依存解決で CUDA 版を取りに行かないように)。
   # irodori-tts は透かし・本文の正規化・トークン分割だけを使うため、学習用の重い依存は入れない
   # 工程ごとの時刻を残す (クラウドで setup が打ち切られたときに、どこで時間がかかったか分かるように)
+  # venv は apt の python3-venv (Ubuntu 24.04 では python3.12-venv) と対になる 3.12 で作り、CI と揃える。
+  # PATH の python3 はクラウドでは 3.13 で、pydub (silentcipher の依存) が 3.13 で削除された audioop を使うため透かしを読み込めない
   echo "[game-voice] torch $(date -Is)"
+  rm -f "$dir/.installed"
   mkdir -p "$dir" &&
-  python3 -m venv "$dir/venv" &&
+  /usr/bin/python3.12 -m venv --clear "$dir/venv" &&
   PIP_NO_CACHE_DIR=1 "$dir/venv/bin/pip" install -q --index-url https://download.pytorch.org/whl/cpu \
     torch==2.10.0 torchaudio==2.10.0 &&
   echo "[game-voice] deps $(date -Is)" &&
@@ -32,13 +35,15 @@ EOF
   chmod +x /usr/local/bin/game-voice &&
   echo "[game-voice] models $(date -Is)" &&
   game-voice download &&
+  touch "$dir/.installed" &&
   echo "[game-voice] end $(date -Is)"
 }
 
 check_game_voice() {
-  if [ -x /usr/local/bin/game-voice ] && [ -d /opt/game-voice/hf/hub/models--Ryoppi--Irodori-TTS-v4.1-Small-MF-ONNX-int8 ]; then
+  # 印は導入とモデル・透かしの取得が最後まで通ったときだけ置く (ファイルの有無だけでは途中の失敗を見逃す)
+  if [ -x /usr/local/bin/game-voice ] && [ -f /opt/game-voice/.installed ]; then
     check_ok "game-voice (音声生成。モデル取得済み)"
   else
-    check_ng "game-voice が無いかモデルが未取得 (/var/log/cloud-setup.log を確認)"
+    check_ng "game-voice の導入が完了していない (/var/log/cloud-setup-game-voice.log を確認)"
   fi
 }
