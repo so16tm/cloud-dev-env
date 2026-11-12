@@ -1,0 +1,11 @@
+huggingface.co
+*.huggingface.co
+hf.co
+*.hf.co
+download.pytorch.org
+download-r2.pytorch.org
+cdn.playwright.dev
+playwright.download.prss.microsoft.com
+cdn.jsdelivr.net
+unpkg.com
+cdnjs.cloudflare.com

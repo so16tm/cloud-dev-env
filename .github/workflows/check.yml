@@ -90,6 +90,16 @@ jobs:
           timeout 120 godot --headless --path . 2>&1 | tee run.log
           grep -q "MIXED_OK: Hello GDScript from C#" run.log
 
+  smoke-default:
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: run dist/default.sh
+        run: sudo bash dist/default.sh
+      - name: cloud-env-check
+        run: sudo cloud-env-check
+
   smoke-react-native:
     needs: lint
     runs-on: ubuntu-24.04

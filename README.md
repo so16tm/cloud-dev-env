@@ -24,6 +24,7 @@ setup に入れるか、必要なときに入れるかは、使う頻度と所�
 
 | 環境 | setup で入れる | 必要なときに入れる |
 |---|---|---|
+| `default` | ユーザー規約（`claude-config`）、CLI 追加分。claude.ai の **Default** 環境に貼る。Network access は **Trusted** のままでよい（取得先は既定リストに含まれる） | なし |
 | `godot` | CLI 追加分（fd, bat, shellcheck など）、Godot 4.7.2 .NET 版（GDScript・C# 両対応）、.NET SDK 8.0 / 10.0、音声生成 `game-voice`（依存とモデルで約3.2GB、導入約70秒） | `cloud-prepare godot-export-templates`（約1GB。書き出すときだけ使う） |
 | `react-native` | CLI 追加分、JDK 17、Android SDK（platform 37.0・build-tools 36/37・NDK 27.1・CMake 3.22.1 など） | なし（一覧に無い SDK パッケージは、ビルド時に Gradle が自動で取得する） |
 
