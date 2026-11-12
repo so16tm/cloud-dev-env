@@ -11,6 +11,10 @@ unpkg.com
 cdnjs.cloudflare.com
 developers.openai.com
 learn.chatgpt.com
+wikipedia.org
+*.wikipedia.org
+wikimedia.org
+*.wikimedia.org
 dl.google.com
 dl-ssl.google.com
 jitpack.io

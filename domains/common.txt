@@ -24,3 +24,9 @@ cdnjs.cloudflare.com
 # OpenAI のドキュメント (Codex のサポートなどで参照する)
 developers.openai.com
 learn.chatgpt.com
+
+# Wikipedia (各言語版は ja. / en. などのサブドメイン) と Wikimedia Commons (commons.・画像の配信元 upload.)
+wikipedia.org
+*.wikipedia.org
+wikimedia.org
+*.wikimedia.org
