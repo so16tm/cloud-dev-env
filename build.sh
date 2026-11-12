@@ -14,7 +14,8 @@ build() {
   [ -f "$env_file" ] || { echo "not found: $env_file" >&2; return 1; }
   # setup で入れる MODULES と、セッション内で cloud-prepare から入れる ON_DEMAND の両方を本体に含める
   # shellcheck disable=SC2016
-  modules=$(bash -c 'source "$1"; echo "$MODULES ${ON_DEMAND:-}"' _ "$env_file")
+  # setup で失敗したときに入れ直せるよう両方に入れたモジュールは、本体に1回だけ含める
+  modules=$(bash -c 'source "$1"; echo "$MODULES ${ON_DEMAND:-}"' _ "$env_file" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ')
   for m in $modules; do
     [ -f "modules/$m.sh" ] || { echo "$env_file: module not found: modules/$m.sh" >&2; return 1; }
   done
