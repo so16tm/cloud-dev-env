@@ -9,6 +9,8 @@ playwright.download.prss.microsoft.com
 cdn.jsdelivr.net
 unpkg.com
 cdnjs.cloudflare.com
+developers.openai.com
+learn.chatgpt.com
 godotengine.org
 *.godotengine.org
 polyhaven.com

@@ -20,3 +20,7 @@ playwright.download.prss.microsoft.com
 cdn.jsdelivr.net
 unpkg.com
 cdnjs.cloudflare.com
+
+# OpenAI のドキュメント (Codex のサポートなどで参照する)
+developers.openai.com
+learn.chatgpt.com

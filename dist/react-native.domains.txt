@@ -9,6 +9,8 @@ playwright.download.prss.microsoft.com
 cdn.jsdelivr.net
 unpkg.com
 cdnjs.cloudflare.com
+developers.openai.com
+learn.chatgpt.com
 dl.google.com
 dl-ssl.google.com
 jitpack.io
