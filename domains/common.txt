@@ -12,6 +12,10 @@ hf.co
 download.pytorch.org
 download-r2.pytorch.org
 
+# GitHub。github.com は既定リストにもあるが明示する。media.githubusercontent.com は Git LFS のファイルの配信元で既定リストに無い
+github.com
+media.githubusercontent.com
+
 # Playwright のブラウザ取得元 (playwright-core の PLAYWRIGHT_CDN_MIRRORS)
 cdn.playwright.dev
 playwright.download.prss.microsoft.com

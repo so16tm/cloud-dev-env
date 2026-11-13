@@ -4,6 +4,8 @@ hf.co
 *.hf.co
 download.pytorch.org
 download-r2.pytorch.org
+github.com
+media.githubusercontent.com
 cdn.playwright.dev
 playwright.download.prss.microsoft.com
 cdn.jsdelivr.net
