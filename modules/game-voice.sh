@@ -16,12 +16,22 @@ module_game_voice() {
   gv_pip() {
     local stage=$1 limit=$2 tries=$3 i
     shift 3
+    local rc
     for ((i = 1; i <= tries; i++)); do
       echo "[game-voice] $stage $(date -Is) (試行 $i)"
-      PIP_NO_CACHE_DIR=1 timeout "$limit" "$dir/venv/bin/pip" install -q --timeout 30 "$@" && return 0
+      # クラウドで止まったときにどのパッケージの取得かが分かるよう、-q を付けずに取得の経過をログに残す
+      PIP_NO_CACHE_DIR=1 timeout "$limit" "$dir/venv/bin/pip" install --progress-bar off --timeout 30 "$@" && return 0
+      rc=$?
+      # 124 は timeout による打ち切り
+      echo "[game-voice] $stage 失敗 $(date -Is) (終了コード $rc$([ "$rc" -eq 124 ] && echo "、${limit}秒で打ち切り"))"
     done
     return 1
   }
+  # クラウドの pip の設定 (取得元の変更など) が CI と違う可能性があるため、設定のある場所と変数名だけを残す (値は出さない)
+  echo "[game-voice] pip の環境変数: $(env | cut -d= -f1 | grep -i '^pip_' | tr '\n' ' ')"
+  for f in /etc/pip.conf /etc/xdg/pip/pip.conf "$HOME/.pip/pip.conf" "$HOME/.config/pip/pip.conf"; do
+    if [ -f "$f" ]; then echo "[game-voice] pip の設定ファイル: $f"; fi
+  done
   rm -f "$dir/.installed"
   # venv は apt の python3-venv (Ubuntu 24.04 では python3.12-venv) と対になる 3.12 で作り、CI と揃える。
   # PATH の python3 はクラウドでは 3.13 で、pydub (silentcipher の依存) が 3.13 で削除された audioop を使うため透かしを読み込めない
